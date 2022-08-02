@@ -10,6 +10,9 @@ const deployUnlimitToken: DeployFunction = async function ({
                                                                deployments,
                                                                getNamedAccounts,
                                                            }: HardhatRuntimeEnvironment) {
+
+    console.log("start deploy unlimited token")
+
     const {deployer, owner, manager} = await getNamedAccounts();
     const {deploy} = deployments;
 
