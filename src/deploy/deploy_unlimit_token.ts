@@ -14,31 +14,21 @@ const deployUnlimitToken: DeployFunction = async function ({
     console.log("start deploy unlimited token")
 
     const {deployer, owner, manager} = await getNamedAccounts();
+
+    console.log("current deployer is ", deployer)
+    console.log("current owner is ", owner)
+
     const {deploy} = deployments;
 
     const {unlimittoken} = CONTRACT_NAMES;
     let contract = await deploy(unlimittoken, {
         from: deployer,
         gasLimit: 2000000,
+        gasPrice: ethers.utils.parseUnits("103", "gwei"),
         deterministicDeployment: SALT,
         log: true,
-        // proxy: {
-        //   owner,
-        //   methodName: "initializeManager",
-        // },
         args: ["QuizToken", "QZT"],
     });
-
-
-    const token = await ethers.getContractAt(
-        "ERC20Template",
-        contract.address,
-    );
-
-
-    let t = await token.deployed()
-
-    console.log("tokenSymbol:" + t.symbol())
 
 };
 

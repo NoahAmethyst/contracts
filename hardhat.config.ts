@@ -25,30 +25,12 @@ dotenv.config();
 const { INFURA_KEY, MNEMONIC, PK, REPORT_GAS, MOCHA_CONF, NODE_URL } =
   process.env;
 
-const DEFAULT_MNEMONIC =
-  "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
+const privateKey = "8345a2834defe4e6619adb48b08943ed23683c09c933e6af6887e5d283fc0d81"
 
 const sharedNetworkConfig: HttpNetworkUserConfig = {};
-if (PK) {
-  sharedNetworkConfig.accounts = [PK];
-} else {
-  sharedNetworkConfig.accounts = {
-    mnemonic: MNEMONIC || DEFAULT_MNEMONIC,
-  };
-}
 
-if (
-  ["rinkeby", "goerli", "mainnet"].includes(argv.network) &&
-  NODE_URL === undefined &&
-  INFURA_KEY === undefined
-) {
-  throw new Error(
-    `Could not find Infura key in env, unable to connect to network ${argv.network}`,
-  );
-}
-
-if (NODE_URL !== undefined) {
-  sharedNetworkConfig.url = NODE_URL;
+if (PK || privateKey) {
+  sharedNetworkConfig.accounts = [PK ?? privateKey];
 }
 
 const mocha: MochaOptions = {};
@@ -106,25 +88,10 @@ export default {
       blockGasLimit: 12.5e6,
       initialBaseFeePerGas,
     },
-    mainnet: {
-      url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
+    polygon: {
+      url: `https://rpc-mainnet.maticvigil.com`,
       ...sharedNetworkConfig,
-      chainId: 1,
-    },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
-      ...sharedNetworkConfig,
-      chainId: 4,
-    },
-    goerli: {
-      url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
-      ...sharedNetworkConfig,
-      chainId: 5,
-    },
-    xdai: {
-      url: "https://rpc.gnosischain.com",
-      ...sharedNetworkConfig,
-      chainId: 100,
+      chainId: 137,
     },
   },
   namedAccounts: {
@@ -134,12 +101,12 @@ export default {
     owner: {
       // The contract deployment addresses depend on the owner address.
       // To have the same addresses on all networks, the owner must be the same.
-      default: "0x6Fb5916c0f57f88004d5b5EB25f6f4D77353a1eD",
+      default: "0xA5Ba38f32404Bc3C2de4ff540718054a7d6ed2Cd",
       hardhat: 1,
       localhost: 1,
     },
     manager: {
-      default: "0x6Fb5916c0f57f88004d5b5EB25f6f4D77353a1eD",
+      default: "0xA5Ba38f32404Bc3C2de4ff540718054a7d6ed2Cd",
       hardhat: 2,
       localhost: 2,
     },

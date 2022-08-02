@@ -14,7 +14,7 @@ describe("ulimittoken", () => {
 
   beforeEach(async () => {
     const tokenSolidity = await ethers.getContractFactory(
-      "src/contracts/unlimittoken.sol:ERC20",
+      "UnlimitedToken",
       deployer,
     );
 

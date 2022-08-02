@@ -222,7 +222,7 @@ contract ERC20 is Context, IERC20 {
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual {}
 }
 
-contract ERC20Template is ERC20 {
+contract UnlimitedToken is ERC20 {
 
     address public owner;
 

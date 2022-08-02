@@ -18,7 +18,7 @@ export const DEPLOYER_CONTRACT = "0x4e59b44847b379578588920ca78fbf26c0b4956c";
  * Dictionary containing all deployed contract names.
  */
 export const CONTRACT_NAMES = {
-    unlimittoken: "ERC20Template",
+    unlimittoken: "UnlimitedToken",
     data_storage: "DataStorage",
     lottery: "LotteryPool",
     quiz: "Quiz",
