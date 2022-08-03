@@ -178,7 +178,7 @@ contract DataStorage {
     //game
     struct GameDetail {
         uint256 id;
-        uint256 type;
+        uint256 category;
         string appId;
         uint256 botType;
         string startContent;
@@ -190,6 +190,7 @@ contract DataStorage {
         uint256 eliminateProportion;
         uint256 winNum;
         uint256[] buffIds;
+        string[] events;
         //ticket
         bool ticketIsEth;
         IERC20 ticketsToken;
@@ -209,8 +210,10 @@ contract DataStorage {
     }
 
     mapping(uint256 => GameDetail) private games;
-    mapping(string => uint256[]) public appGames;
-    mapping(uint256 => mapping(address => uint256)) userBuff;
+    mapping(string => uint256[]) private appGames;
+    mapping(uint256 => mapping(uint256 => uint256[])) private buffPlayersIndexes;
+    mapping(uint256 => mapping(uint256 => address[])) private players;
+    mapping(uint256 => mapping(uint256 => uint256)) private ticketsPoll;
 
     uint256[] private gameIds;
     uint256[] private notOverGameIds;
@@ -233,7 +236,7 @@ contract DataStorage {
         return games[_id];
     }
 
-    function getQuizzes(uint256[] memory _ids) public view returns (GameDetail[] memory) {
+    function getGames(uint256[] memory _ids) public view returns (GameDetail[] memory) {
         GameDetail[] memory details = new GameDetail[](_ids.length);
         for (uint i = 0; i < _ids.length; i++) {
             games[i] = games[_ids[i]];
@@ -248,6 +251,47 @@ contract DataStorage {
 
     function getAppGames(string memory _appId) public view returns (uint256[] memory){
         return appGames[_appId];
+    }
+
+    function getGameIds() public view returns (uint256[] memory){
+        return gameIds;
+    }
+
+    function getPlayers(uint256 _gameId, uint256 _ground) public view returns (address[] memory){
+        return players[_gameId][_ground];
+    }
+
+    function setPlayers(uint256 _gameId, uint256 _round, address[] memory _players) public onlyOperator {
+
+        for (uint i = 0; i < _players.length; i++) {
+            players[_gameId][_round].push(_players[i]);
+            ticketsPoll[_gameId][_round] = ticketsPoll[_gameId][_round].add(games[_gameId].ticketsNum);
+        }
+        if (players[_gameId][_ground].length == 0) {
+            players[_gameId][_ground] = _players;
+        } else {
+            for (uint i = 0; i < _players.length; i++) {
+                players[_gameId][_ground].push(_players[i]);
+            }
+        }
+    }
+
+    function getBuffPlayers(uint256 _gameId, uint256 _round) public view returns (uint256[] memory){
+        return buffPlayers[_gameId][_round];
+    }
+
+    function setBuffPlayers(uint256 _gameId,uint256 _round,uint256[] memory _indexes) public onlyOperator{
+        if (buffPlayers[_gameId][_ground].length == 0) {
+            buffPlayers[_gameId][_ground] = _indexes;
+        } else {
+            for (uint i = 0; i < _indexes.length; i++) {
+                buffPlayers[_gameId][_ground].push(_indexes[i]);
+            }
+        }
+    }
+
+    function getTicketsPool(uint256 _gameId, uint256 _round) public view returns (uint256){
+        return ticketsPoll[_gameId][_round];
     }
 
 
@@ -270,6 +314,7 @@ contract DataStorage {
 
 
 
+
     //game result
     struct GameResult {
         uint256 id;
@@ -277,6 +322,9 @@ contract DataStorage {
         uint256 participate;
         address sponsor;
         uint256 launchTime;
+        uint256[] eliminatePlayerIndexes;
+        uint256[] buffUsersIndexes;
+        uint256[] eventsIndexes;
     }
 
     mapping(uint256 => GameResult[]) private gameResults;
@@ -288,7 +336,15 @@ contract DataStorage {
         }
     }
 
-    function getGameResults(uint256 _id) public view returns (GameResult[] memory){
+    function getGameResult(uint256 _gameId, uint256 _round) public view returns (GameResult memory){
+        return gameResults[_gameId][_round];
+    }
+
+    function getGameResultLength(uint256 _gameId) public view returns (uint256){
+        return gameResults[_gameId].length;
+    }
+
+    function getGameResults(uint256 _gameId) public view returns (GameResult[] memory){
         return gameResults[_id];
     }
 
