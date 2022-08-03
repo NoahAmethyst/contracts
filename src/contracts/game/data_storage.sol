@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import "../airdrop.sol";
 
 
 interface IERC20 {
@@ -144,35 +143,56 @@ library SafeMath {
     }
 }
 
-contract DataStorage {
-    using SafeMath for uint256;
-    address public owner;
+
+contract Operator {
     mapping(address => bool) public operators;
-
-
-    modifier onlyOwner(){
-        require(msg.sender == owner, "Only Owner");
-        _;
-    }
 
     modifier onlyOperator(){
         require(operators[msg.sender], "Only Operator");
         _;
     }
 
+    function _addOperator(address _newOperator) internal {
+        operators[_newOperator] = true;
+    }
+
+    function _delOperator(address _removeOperator) internal  {
+        operators[_removeOperator] = false;
+    }
+
+}
+
+contract Ownable is Operator {
+    address public owner;
+
+    modifier onlyOwner(){
+        require(msg.sender == owner, "Only Owner");
+        _;
+    }
+
     function transferOwner(address _newOwner) public onlyOwner {
+        _delOperator(owner);
         owner = _newOwner;
         operators[_newOwner] = true;
     }
+}
+
+
+contract DataStorage is Ownable {
+    using SafeMath for uint256;
 
     function addOperator(address _newOperator) public onlyOwner {
-        operators[_newOperator] = true;
+        _addOperator(_newOperator);
+    }
+
+    function delOperator(address _removeOperator) public onlyOwner {
+        _delOperator(_removeOperator);
     }
 
 
     constructor() {
         owner = msg.sender;
-        operators[msg.sender] = true;
+        addOperator(msg.sender);
     }
 
     //game
@@ -180,14 +200,17 @@ contract DataStorage {
         uint256 id;
         uint256 category;
         string appId;
+        int256 groupId;
         uint256 botType;
-        string startContent;
+        string title;
+        string introduction;
         string endContent;
 
         uint256 eliminateMinNum;
         uint256 eliminateMaxNum;
         // v/100
         uint256 eliminateProportion;
+        uint256 awardProportion;
         uint256 winNum;
         uint256[] buffIds;
         string[] events;
@@ -211,7 +234,7 @@ contract DataStorage {
 
     mapping(uint256 => GameDetail) private games;
     mapping(string => uint256[]) private appGames;
-    mapping(uint256 => mapping(uint256 => uint256[])) private buffPlayersIndexes;
+    mapping(uint256 => mapping(uint256 => uint256[])) private buffPlayerIndexes;
     mapping(uint256 => mapping(uint256 => address[])) private players;
     mapping(uint256 => mapping(uint256 => uint256)) private ticketsPoll;
 
@@ -227,7 +250,7 @@ contract DataStorage {
         }
     }
 
-    function overGame(string memory _appId, uint256 _id) public onlyOperator {
+    function overGame( uint256 _id) public onlyOperator {
         games[_id].over = true;
         _popOverGame(_id);
     }
@@ -239,7 +262,7 @@ contract DataStorage {
     function getGames(uint256[] memory _ids) public view returns (GameDetail[] memory) {
         GameDetail[] memory details = new GameDetail[](_ids.length);
         for (uint i = 0; i < _ids.length; i++) {
-            games[i] = games[_ids[i]];
+            details[i] = games[_ids[i]];
         }
         return details;
     }
@@ -267,25 +290,25 @@ contract DataStorage {
             players[_gameId][_round].push(_players[i]);
             ticketsPoll[_gameId][_round] = ticketsPoll[_gameId][_round].add(games[_gameId].ticketsNum);
         }
-        if (players[_gameId][_ground].length == 0) {
-            players[_gameId][_ground] = _players;
+        if (players[_gameId][_round].length == 0) {
+            players[_gameId][_round] = _players;
         } else {
             for (uint i = 0; i < _players.length; i++) {
-                players[_gameId][_ground].push(_players[i]);
+                players[_gameId][_round].push(_players[i]);
             }
         }
     }
 
     function getBuffPlayers(uint256 _gameId, uint256 _round) public view returns (uint256[] memory){
-        return buffPlayers[_gameId][_round];
+        return buffPlayerIndexes[_gameId][_round];
     }
 
-    function setBuffPlayers(uint256 _gameId,uint256 _round,uint256[] memory _indexes) public onlyOperator{
-        if (buffPlayers[_gameId][_ground].length == 0) {
-            buffPlayers[_gameId][_ground] = _indexes;
+    function setBuffPlayers(uint256 _gameId, uint256 _round, uint256[] memory _indexes) public onlyOperator {
+        if (buffPlayerIndexes[_gameId][_round].length == 0) {
+            buffPlayerIndexes[_gameId][_round] = _indexes;
         } else {
             for (uint i = 0; i < _indexes.length; i++) {
-                buffPlayers[_gameId][_ground].push(_indexes[i]);
+                buffPlayerIndexes[_gameId][_round].push(_indexes[i]);
             }
         }
     }
@@ -330,7 +353,7 @@ contract DataStorage {
     mapping(uint256 => GameResult[]) private gameResults;
 
 
-    function setGameResult(string memory _appId, GameResult memory _result) public onlyOperator {
+    function setGameResult( GameResult memory _result) public onlyOperator {
         if (games[_result.id].exist) {
             gameResults[_result.id].push(_result);
         }
@@ -345,7 +368,7 @@ contract DataStorage {
     }
 
     function getGameResults(uint256 _gameId) public view returns (GameResult[] memory){
-        return gameResults[_id];
+        return gameResults[_gameId];
     }
 
 

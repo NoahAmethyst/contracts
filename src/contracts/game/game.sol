@@ -154,14 +154,17 @@ interface IGameData {
         uint256 id;
         uint256 category;
         string appId;
+        int256 groupId;
         uint256 botType;
-        string startContent;
+        string title;
+        string introduction;
         string endContent;
 
         uint256 eliminateMinNum;
         uint256 eliminateMaxNum;
         // v/100
         uint256 eliminateProportion;
+        uint256 awardProportion;
         uint256 winNum;
         uint256[] buffIds;
         string[] events;
@@ -237,17 +240,41 @@ interface IGameData {
 }
 
 
-contract Game {
-
-    using SafeMath for uint256;
-    address  public owner;
+contract Operator {
     address payable public operator;
     mapping(string => address payable) appOperators;
+
+    function _changeOperator(address payable _newOperator) internal {
+        operator = _newOperator;
+    }
+
+    function _addAppOperator(string memory _appId, address payable _newOperator) internal {
+        appOperators[_appId] = _newOperator;
+    }
+
+}
+
+
+contract Ownable is Operator {
+    address public owner;
+
+    modifier onlyOwner(){
+        require(msg.sender == owner, "Only Owner");
+        _;
+    }
+
+    function transferOwner(address _newOwner) public onlyOwner {
+        owner = _newOwner;
+    }
+}
+
+contract Game is Ownable {
+
+    using SafeMath for uint256;
+
     IAdminData public adminData;
     IGameData public gameData;
 
-
-    uint256 public correctRewardAmount;
 
     constructor(address payable _operator, IAdminData _adminData, IGameData _gameData) {
         owner = msg.sender;
@@ -258,15 +285,11 @@ contract Game {
 
 
     modifier checkGame(uint256 _gameId){
-        require(_quizId != 0, "invalid quizId 0");
+        require(_gameId != 0, "invalid quizId 0");
         require(gameData.getGame(_gameId).exist, "nonexistent game");
         _;
     }
 
-    modifier onlyOwner(){
-        require(msg.sender == owner, "Only Owner");
-        _;
-    }
 
     modifier onlyAdmin(string memory _appId) {
         require(adminData.checkAdmin(_appId, msg.sender) || operator == msg.sender
@@ -274,129 +297,16 @@ contract Game {
         _;
     }
 
-    function transferOwner(address _newOwner) public onlyOwner {
-        owner = _newOwner;
-    }
-
     function changeOperator(address payable _newOperator) public onlyOwner {
-        operator = _newOperator;
+        _changeOperator(_newOperator);
     }
 
     function addAppOperator(string memory _appId, address payable _newOperator) public onlyOwner {
-        appOperators[_appId] = _newOperator;
-    }
-
-    function createQuiz(string memory _appId, uint256 _quizId, int256 _groupId, uint _botType, string[] memory _questions,
-        uint256 _rewardAmount, uint256 _startTime, uint256 _activeTime, string memory _title, string memory _photo) payable public onlyAdmin(_appId) {
-        require(_quizId != 0, "invalid quizId 0");
-        IDataStorage.QuizDetail memory quiz = dataStorage.getQuiz(_quizId);
-        require(!quiz.exist, "exist quiz");
-        _rewardAmount = correctRewardAmount;
-
-        address payable thisOperator = appOperators[_appId];
-
-        if (address(msg.sender) != address(operator) && address(msg.sender) != owner) {
-            require(msg.value > 0, "you should prepay for gas");
-            if (address(thisOperator) != address(0)) {
-                require(msg.value > 0, "you should prepay for gas");
-                thisOperator.transfer(msg.value);
-            } else {
-                operator.transfer(msg.value);
-            }
-        }
-
-        quiz.id = _quizId;
-        quiz.app_id = _appId;
-        quiz.amount = _rewardAmount;
-        quiz.questions = _questions;
-        quiz.group = _groupId;
-        quiz.exist = true;
-        quiz.botType = _botType;
-        quiz.title = _title;
-        quiz.photo = _photo;
-        quiz.startTime = _startTime;
-        quiz.activeTime = _activeTime;
-
-        dataStorage.setQuiz(_appId, quiz);
-
-        emit CreateQuiz(_appId, _quizId, _groupId, _botType, _questions, _rewardAmount, _startTime, _activeTime);
+        _addAppOperator(_appId, _newOperator);
     }
 
 
-    function editQuiz(string memory _appId, uint256 _quizId, int256 _groupId, string[] memory _questions, uint256 _startTime, uint256 _activeTime, string memory _title, string memory _photo) public
-    onlyAdmin(_appId)
-    checkQuiz(_quizId) {
-        IDataStorage.QuizDetail memory quiz = dataStorage.getQuiz(_quizId);
-        if (_groupId != 0) {
-            quiz.group = _groupId;
-        }
-        if (_questions.length > 0) {
-            quiz.questions = _questions;
-        }
-        if (_startTime > 0) {
-            quiz.startTime = _startTime;
-        }
-        if (_activeTime > 0) {
-            quiz.activeTime = _activeTime;
-        }
-        if (bytes(_title).length > 0) {
-            quiz.title = _title;
-        }
-        if (bytes(_photo).length > 0) {
-            quiz.photo = _photo;
-        }
-
-        dataStorage.setQuiz(_appId, quiz);
-    }
 
 
-    function getQuiz(uint256 _quizId) public view returns (IDataStorage.QuizDetail memory) {
-        return dataStorage.getQuiz(_quizId);
-    }
 
-    function getQuizzes(uint256[] memory _ids) public view returns (IDataStorage.QuizDetail[] memory){
-        return dataStorage.getQuizzes(_ids);
-    }
-
-
-    function getShouldAwardQuizIds() public view returns (uint256[] memory) {
-        return dataStorage.getShouldAwardQuizIds();
-    }
-
-    function getAppQuizIds(string memory _appId) public view returns (uint256[] memory){
-        return dataStorage.getAppQuizIds(_appId);
-    }
-
-
-    function getInductees(uint256 _quizId) public view returns (address[] memory){
-        return dataStorage.getInductees(_quizId);
-    }
-
-    function addInductees(string memory _appId, uint256 _quizId, address[] memory _inductees, uint256 _participateNumber) public checkQuiz(_quizId) onlyAdmin(_appId) {
-        IDataStorage.QuizDetail memory quiz = dataStorage.getQuiz(_quizId);
-        require(!quiz.over, "quiz is over");
-        dataStorage.addInductees(_quizId, _inductees, _participateNumber);
-    }
-
-    function awards(string memory _appId, uint256 _quizId) public checkQuiz(_quizId) onlyAdmin(_appId) {
-        IDataStorage.QuizDetail memory quiz = dataStorage.getQuiz(_quizId);
-        require(!quiz.over, "quiz is over");
-
-        address[] memory thisInductees = dataStorage.getInductees(_quizId);
-        uint256 i = 0;
-
-        while (i < thisInductees.length) {
-            quizToken.mint(thisInductees[i], quiz.amount);
-            i += 1;
-        }
-
-        quiz.over = true;
-        dataStorage.overQuiz(_quizId);
-        lottery.drawALottery(_quizId);
-    }
-
-
-    function getLotteryResults(uint256 _quizId, uint256 _index) public view returns (address[] memory){
-        return dataStorage.getLotteryResult(_quizId, _index);
-    }
 }
