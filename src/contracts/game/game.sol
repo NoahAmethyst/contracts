@@ -170,7 +170,7 @@ interface IGameData {
         //ticket
         bool ticketIsEth;
         IERC20 ticketsToken;
-        uint256 ticketsNum;
+        uint256 ticketAmount;
         //option
         uint256 effectStartTime;
         uint256 effectEndTime;
@@ -179,8 +179,6 @@ interface IGameData {
         //24H
         uint256 startH;
         uint256 startM;
-
-        bool over;
         bool exist;
         address creator;
     }
@@ -188,15 +186,9 @@ interface IGameData {
 
     function setGame(string memory _appId, GameDetail memory _game) external;
 
-
-    function overGame(string memory _appId, uint256 _id) external;
-
     function getGame(uint256 _id) external view returns (GameDetail memory);
 
     function getGames(uint256[] memory _ids) external view returns (GameDetail[] memory);
-
-
-    function getNotOverGameList() external view returns (uint256[] memory);
 
     function getAppGames(string memory _appId) external view returns (uint256[] memory);
 
@@ -206,9 +198,13 @@ interface IGameData {
 
     function setPlayers(uint256 _gameId, uint256 _round, address[] memory _players) external;
 
+    function addPlayer(uint256 _gameId, uint256 _round, address _player) external;
+
     function getBuffPlayers(uint256 _gameId, uint256 _round) external view returns (uint256[] memory);
 
     function setBuffPlayers(uint256 _gameId, uint256 _round, uint256[] memory _indexes) external;
+
+    function addBuffPlayers(uint256 _gameId, uint256 _round, uint _index) external;
 
     function getTicketsPool(uint256 _gameId, uint256 _round) external view returns (uint256);
 
@@ -254,7 +250,7 @@ contract Permission {
     }
 
     function isOperator(string memory _appId) public view returns (bool){
-        return (operator == msg.sender || address(appOperators[_appId]) == msg.sender || owner == msg.sender);
+        return (operator == msg.sender || address(appOperators[_appId]) == msg.sender);
     }
 
     function changeOperator(address payable _newOperator) public onlyOwner {
@@ -268,9 +264,8 @@ contract Permission {
     function delAppOperator(string memory _appId) public onlyOwner {
         appOperators[_appId] = payable(0);
     }
-
-
 }
+
 
 contract Game is Permission {
 
@@ -278,13 +273,31 @@ contract Game is Permission {
 
     IAdminData public adminData;
     IGameData public gameData;
+    IERC20 public buffToken;
+    uint256 public buffValue;
 
 
-    constructor(address payable _operator, IAdminData _adminData, IGameData _gameData) {
+
+    constructor(address payable _operator, IAdminData _adminData, IGameData _gameData, IERC20 _buffToken, uint256 _buffValue) {
         owner = msg.sender;
         operator = _operator;
         adminData = _adminData;
         gameData = _gameData;
+        buffToken = _buffToken;
+        buffValue = _buffValue;
+    }
+
+
+    function changeAdminData(IAdminData _newData) public onlyOwner {
+        adminData = _newData;
+    }
+
+    function changeGameData(IGameData _newData) public onlyOwner {
+        gameData = _newData;
+    }
+
+    function changeBuffToken(IERC20 _newToken) public onlyOwner {
+        buffToken = _newToken;
     }
 
 
@@ -299,5 +312,124 @@ contract Game is Permission {
         _;
     }
 
+    function _createGame(IGameData.GameDetail memory _game) public onlyAdmin(_game.appId) {
+        require(_game.id != 0, "invalid gameId 0");
+        IGameData.GameDetail memory game = gameData.getGame(_game.id);
+        require(!game.exist, "exist game");
+        game = _game;
+        game.exist = true;
+        if (!_game.daily) {
+            game.startH = 0;
+            game.startM = 0;
+        }
+        game.creator = msg.sender;
+        gameData.setGame(_game.appId, game);
+    }
+
+    function buyErc20Ticket(uint256 _gameId) public checkGame(_gameId) {
+        IGameData.GameDetail memory game = gameData.getGame(_gameId);
+        require(!game.ticketIsEth, "ticket not erc20 token");
+        uint256 round = gameData.getGameResultLength(_gameId).sub(1);
+        bool hasPlayer = _checkIsJoin(_gameId, round, msg.sender);
+        require(!hasPlayer, "already buy tickets");
+        bool success = game.ticketsToken.transferFrom(msg.sender, address(this), game.ticketAmount);
+        require(success, "buy ticket failed");
+
+        gameData.addPlayer(_gameId, round.sub(1), msg.sender);
+    }
+
+
+    function buyEthTicket(uint256 _gameId) public payable checkGame(_gameId) {
+        IGameData.GameDetail memory game = gameData.getGame(_gameId);
+        require(game.ticketIsEth, "ticket not native token");
+        uint256 round = gameData.getGameResultLength(_gameId).sub(1);
+        bool hasPlayer = _checkIsJoin(_gameId, round, msg.sender);
+        require(!hasPlayer, "already buy tickets");
+        require(msg.value >= game.ticketAmount, "pay for ticket not enough");
+        gameData.addPlayer(_gameId, round.sub(1), msg.sender);
+    }
+
+    function buyBuff(uint256 _gameId, uint256 _round, uint256 _buffId) public {
+        IGameData.GameDetail memory game = gameData.getGame(_gameId);
+        bool buffExist = false;
+        for (uint i = 0; i < game.buffIds.length; i++) {
+            if (game.buffIds[i] == _buffId) {
+                buffExist = true;
+                break;
+            }
+        }
+
+        address[] memory players = gameData.getPlayers(_gameId, _round);
+        uint index = 0;
+        bool hasPlayer = false;
+        for (uint i = 0; i < players.length; i++) {
+            if (players[i] == msg.sender) {
+                hasPlayer = true;
+                index = i;
+                break;
+            }
+        }
+
+        require(hasPlayer, "not join the game");
+        require(buffExist, "invalid buff");
+        bool success = buffToken.transferFrom(msg.sender, address(this), buffValue);
+        require(success, "buy buff failed");
+        gameData.addBuffPlayers(_gameId, _round, index);
+    }
+
+
+    function getPlayers(uint256 _gameId, uint256 _round) public view returns (address[] memory){
+        return gameData.getPlayers(_gameId, _round);
+    }
+
+    function getGameRound(uint256 _gameId) public view returns (uint256){
+        return gameData.getGameResultLength(_gameId).add(1);
+    }
+
+    function getGameResults(uint256 _gameId) public view returns (IGameData.GameResult[] memory){
+        return gameData.getGameResults(_gameId);
+    }
+
+    function getGameResult(uint256 _gameId, uint256 _round) public view returns (IGameData.GameResult memory){
+        return gameData.getGameResult(_gameId, _round);
+    }
+
+    function getBuffPlayerIndexes(uint256 _gameId, uint256 _round) public view returns (uint256[] memory){
+        return gameData.getBuffPlayers(_gameId, _round);
+    }
+
+    function setGameResult(string memory _appId, uint256 _gameId, address[] memory _winners, address _sponsor, uint256 _launchTime,
+        uint256[] memory _eliminatePlayerIndexes, uint256[] memory _buffUsersIndexes, uint256[] memory _eventsIndexes) public onlyAdmin(_appId) checkGame(_gameId) {
+
+
+        uint256 round = gameData.getGameResultLength(_gameId);
+        address[] memory players = gameData.getPlayers(_gameId, round);
+
+        IGameData.GameResult memory _result = IGameData.GameResult(
+            _gameId,
+            _winners,
+            players.length,
+            _sponsor,
+            _launchTime,
+            _eliminatePlayerIndexes,
+            _buffUsersIndexes,
+            _eventsIndexes
+        );
+        gameData.setGameResult(_appId, _result);
+
+    }
+
+
+    function _checkIsJoin(uint256 _gameId, uint256 _round, address _player) internal view returns (bool){
+        address[] memory players = gameData.getPlayers(_gameId, _round);
+        bool hasPlayer = false;
+        for (uint i = 0; i < players.length; i++) {
+            if (players[i] == _player) {
+                hasPlayer = true;
+                break;
+            }
+        }
+        return hasPlayer;
+    }
 
 }

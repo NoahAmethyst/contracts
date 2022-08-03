@@ -176,13 +176,12 @@ contract Permission {
 contract DataStorage is Permission {
     using SafeMath for uint256;
 
-
-
     constructor() {
         owner = msg.sender;
         addOperator(msg.sender);
     }
 
+    //game
     //game
     struct GameDetail {
         uint256 id;
@@ -205,7 +204,7 @@ contract DataStorage is Permission {
         //ticket
         bool ticketIsEth;
         IERC20 ticketsToken;
-        uint256 ticketsNum;
+        uint256 ticketAmount;
         //option
         uint256 effectStartTime;
         uint256 effectEndTime;
@@ -214,8 +213,6 @@ contract DataStorage is Permission {
         //24H
         uint256 startH;
         uint256 startM;
-
-        bool over;
         bool exist;
         address creator;
     }
@@ -227,7 +224,6 @@ contract DataStorage is Permission {
     mapping(uint256 => mapping(uint256 => uint256)) private ticketsPoll;
 
     uint256[] private gameIds;
-    uint256[] private notOverGameIds;
 
 
     function setGame(string memory _appId, GameDetail memory _game) public onlyOperator {
@@ -236,11 +232,6 @@ contract DataStorage is Permission {
             appGames[_appId].push(_game.id);
             gameIds.push(_game.id);
         }
-    }
-
-    function overGame(uint256 _id) public onlyOperator {
-        games[_id].over = true;
-        _popOverGame(_id);
     }
 
     function getGame(uint256 _id) public view returns (GameDetail memory) {
@@ -255,10 +246,6 @@ contract DataStorage is Permission {
         return details;
     }
 
-
-    function getNotOverGameList() public view returns (uint256[] memory){
-        return notOverGameIds;
-    }
 
     function getAppGames(string memory _appId) public view returns (uint256[] memory){
         return appGames[_appId];
@@ -276,7 +263,7 @@ contract DataStorage is Permission {
 
         for (uint i = 0; i < _players.length; i++) {
             players[_gameId][_round].push(_players[i]);
-            ticketsPoll[_gameId][_round] = ticketsPoll[_gameId][_round].add(games[_gameId].ticketsNum);
+            ticketsPoll[_gameId][_round] = ticketsPoll[_gameId][_round].add(games[_gameId].ticketAmount);
         }
         if (players[_gameId][_round].length == 0) {
             players[_gameId][_round] = _players;
@@ -285,6 +272,11 @@ contract DataStorage is Permission {
                 players[_gameId][_round].push(_players[i]);
             }
         }
+    }
+
+    function addPlayer(uint256 _gameId, uint256 _round, address _player) public onlyOperator {
+        players[_gameId][_round].push(_player);
+        ticketsPoll[_gameId][_round] = ticketsPoll[_gameId][_round].add(games[_gameId].ticketAmount);
     }
 
     function getBuffPlayers(uint256 _gameId, uint256 _round) public view returns (uint256[] memory){
@@ -301,27 +293,13 @@ contract DataStorage is Permission {
         }
     }
 
+    function addBuffPlayers(uint256 _gameId, uint256 _round, uint _index) public onlyOperator {
+        buffPlayerIndexes[_gameId][_round].push(_index);
+    }
+
     function getTicketsPool(uint256 _gameId, uint256 _round) public view returns (uint256){
         return ticketsPoll[_gameId][_round];
     }
-
-
-    function _popOverGame(uint256 _id) internal {
-        uint256 lastNotOverGameIdIndex = notOverGameIds.length - 1;
-        uint256 notOverGameIdIndex = 0;
-        for (uint256 i = 0; i < lastNotOverGameIdIndex; i ++) {
-            if (notOverGameIds[i] == _id) {
-                notOverGameIdIndex = i;
-            }
-        }
-
-        // When the question to delete is the last question, the swap operation is unnecessary
-        if (lastNotOverGameIdIndex != notOverGameIdIndex) {
-            notOverGameIds[notOverGameIdIndex] = notOverGameIds[lastNotOverGameIdIndex];
-        }
-        notOverGameIds.pop();
-    }
-
 
 
 
