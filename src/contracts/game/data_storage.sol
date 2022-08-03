@@ -305,8 +305,8 @@ contract DataStorage is Permission {
 
 
     //game result
-    struct GameResult {
-        uint256 id;
+    struct GameRound {
+        uint256 gameId;
         address[] winners;
         uint256 participate;
         address sponsor;
@@ -314,27 +314,43 @@ contract DataStorage is Permission {
         uint256[] eliminatePlayerIndexes;
         uint256[] buffUsersIndexes;
         uint256[] eventsIndexes;
+        bool exist;
     }
 
-    mapping(uint256 => GameResult[]) private gameResults;
+    mapping(uint256 => GameRound[]) private gameRoundList;
 
 
-    function setGameResult(GameResult memory _result) public onlyOperator {
-        if (games[_result.id].exist) {
-            gameResults[_result.id].push(_result);
+    function initGameRound(uint256 _gameId, address _sponsor, uint256 _launchTime) public onlyOperator {
+        if (games[_gameId].exist) {
+            GameRound memory gameRound = GameRound(
+                _gameId,
+                new address[](0),
+                0,
+                _sponsor,
+                _launchTime,
+                new uint256[](0),
+                new uint256[](0),
+                new uint256[](0),
+                true
+            );
+            gameRoundList[_gameId].push(gameRound);
         }
     }
 
-    function getGameResult(uint256 _gameId, uint256 _round) public view returns (GameResult memory){
-        return gameResults[_gameId][_round];
+    function editGameRound(uint256 _gameId, uint256 _round, GameRound memory _gameRound) public onlyOperator {
+        gameRoundList[_gameId][_round] = _gameRound;
     }
 
-    function getGameResultLength(uint256 _gameId) public view returns (uint256){
-        return gameResults[_gameId].length;
+    function getGameRound(uint256 _gameId, uint256 _round) public view returns (GameRound memory){
+        return gameRoundList[_gameId][_round];
     }
 
-    function getGameResults(uint256 _gameId) public view returns (GameResult[] memory){
-        return gameResults[_gameId];
+    function getGameLatestRound(uint256 _gameId) public view returns (uint256){
+        return gameRoundList[_gameId].length;
+    }
+
+    function getGameRoundList(uint256 _gameId) public view returns (GameRound[] memory){
+        return gameRoundList[_gameId];
     }
 
 

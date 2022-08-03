@@ -213,8 +213,8 @@ interface IGameData {
 
 
     //game result
-    struct GameResult {
-        uint256 id;
+    struct GameRound {
+        uint256 gameId;
         address[] winners;
         uint256 participate;
         address sponsor;
@@ -222,15 +222,18 @@ interface IGameData {
         uint256[] eliminatePlayerIndexes;
         uint256[] buffUsersIndexes;
         uint256[] eventsIndexes;
+        bool exist;
     }
 
-    function setGameResult(string memory _appId, GameResult memory _result) external;
+    function initGameRound(uint256 _gameId, address _sponsor, uint256 _launchTime) external;
 
-    function getGameResult(uint256 _gameId, uint256 _round) external view returns (GameResult memory);
+    function editGameRound(uint256 _gameId, uint256 _round, GameRound memory _gameRound) external;
 
-    function getGameResultLength(uint256 _gameId) external view returns (uint256);
+    function getGameRound(uint256 _gameId, uint256 _round) external view returns (GameRound memory);
 
-    function getGameResults(uint256 _gameId) external view returns (GameResult[] memory);
+    function getGameLatestRound(uint256 _gameId) external view returns (uint256);
+
+    function getGameRoundList(uint256 _gameId) external view returns (GameRound[] memory);
 
 }
 
@@ -303,7 +306,12 @@ contract Game is Permission {
 
     modifier checkGame(uint256 _gameId){
         require(_gameId != 0, "invalid quizId 0");
-        require(gameData.getGame(_gameId).exist, "nonexistent game");
+        require(gameData.getGame(_gameId).exist, "not exist game");
+        _;
+    }
+
+    modifier checkGameRound(uint256 _gameId, uint256 _round){
+        require(gameData.getGameRound(_gameId, _round).exist, "not start game round");
         _;
     }
 
@@ -326,29 +334,27 @@ contract Game is Permission {
         gameData.setGame(_game.appId, game);
     }
 
-    function buyErc20Ticket(uint256 _gameId) public checkGame(_gameId) {
+    function buyErc20Ticket(uint256 _gameId, uint256 _round) public checkGameRound(_gameId, _round) {
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
         require(!game.ticketIsEth, "ticket not erc20 token");
-        uint256 nowRound = gameData.getGameResultLength(_gameId).sub(1);
-        bool hasPlayer = _checkIsJoin(_gameId, nowRound, msg.sender);
+        bool hasPlayer = _checkIsJoin(_gameId, _round, msg.sender);
         require(!hasPlayer, "already buy tickets");
         bool success = game.ticketsToken.transferFrom(msg.sender, address(this), game.ticketAmount);
         require(success, "buy ticket failed");
-        gameData.addPlayer(_gameId, nowRound, msg.sender);
+        gameData.addPlayer(_gameId, _round, msg.sender);
     }
 
 
-    function buyEthTicket(uint256 _gameId) public payable checkGame(_gameId) {
+    function buyEthTicket(uint256 _gameId, uint256 _round) public payable checkGameRound(_gameId, _round) {
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
         require(game.ticketIsEth, "ticket not native token");
-        uint256 nowRound = gameData.getGameResultLength(_gameId).sub(1);
-        bool hasPlayer = _checkIsJoin(_gameId, nowRound, msg.sender);
+        bool hasPlayer = _checkIsJoin(_gameId, _round, msg.sender);
         require(!hasPlayer, "already buy tickets");
         require(msg.value >= game.ticketAmount, "pay for ticket not enough");
-        gameData.addPlayer(_gameId, nowRound, msg.sender);
+        gameData.addPlayer(_gameId, _round, msg.sender);
     }
 
-    function buyBuff(uint256 _gameId, uint256 _round, uint256 _buffId) public {
+    function buyBuff(uint256 _gameId, uint256 _round, uint256 _buffId) public checkGameRound(_gameId, _round) {
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
         bool buffExist = false;
         for (uint i = 0; i < game.buffIds.length; i++) {
@@ -377,46 +383,41 @@ contract Game is Permission {
         gameData.addBuffPlayers(_gameId, _round, index);
     }
 
+    function startGame(string memory _appId, uint256 _gameId, uint256 _launchTime) public onlyAdmin(_appId) checkGame(_gameId) {
+        gameData.initGameRound(_gameId, msg.sender, _launchTime);
+    }
+
 
     function getPlayers(uint256 _gameId, uint256 _round) public view returns (address[] memory){
         return gameData.getPlayers(_gameId, _round);
     }
 
     function getGameRound(uint256 _gameId) public view returns (uint256){
-        return gameData.getGameResultLength(_gameId).add(1);
+        return gameData.getGameLatestRound(_gameId);
     }
 
-    function getGameResults(uint256 _gameId) public view returns (IGameData.GameResult[] memory){
-        return gameData.getGameResults(_gameId);
+    function getGameResults(uint256 _gameId) public view returns (IGameData.GameRound[] memory){
+        return gameData.getGameRoundList(_gameId);
     }
 
-    function getGameResult(uint256 _gameId, uint256 _round) public view returns (IGameData.GameResult memory){
-        return gameData.getGameResult(_gameId, _round);
+    function getGameResult(uint256 _gameId, uint256 _round) public view returns (IGameData.GameRound memory){
+        return gameData.getGameRound(_gameId, _round);
     }
 
     function getBuffPlayerIndexes(uint256 _gameId, uint256 _round) public view returns (uint256[] memory){
         return gameData.getBuffPlayers(_gameId, _round);
     }
 
-    function setGameResult(string memory _appId, uint256 _gameId, address[] memory _winners, address _sponsor, uint256 _launchTime,
-        uint256[] memory _eliminatePlayerIndexes, uint256[] memory _buffUsersIndexes, uint256[] memory _eventsIndexes) public onlyAdmin(_appId) checkGame(_gameId) {
-
-
-        uint256 round = gameData.getGameResultLength(_gameId);
-        address[] memory players = gameData.getPlayers(_gameId, round);
-
-        IGameData.GameResult memory _result = IGameData.GameResult(
-            _gameId,
-            _winners,
-            players.length,
-            _sponsor,
-            _launchTime,
-            _eliminatePlayerIndexes,
-            _buffUsersIndexes,
-            _eventsIndexes
-        );
-        gameData.setGameResult(_appId, _result);
-
+    function gameRoundOver(string memory _appId, uint256 _gameId, uint256 _round, address[] memory _winners,
+        uint256[] memory _eliminatePlayerIndexes, uint256[] memory _buffUsersIndexes, uint256[] memory _eventsIndexes) public onlyAdmin(_appId) checkGameRound(_gameId, _round) {
+        address[] memory players = gameData.getPlayers(_gameId, _round);
+        IGameData.GameRound memory _gameRound = gameData.getGameRound(_gameId, _round);
+        _gameRound.winners = _winners;
+        _gameRound.participate = players.length;
+        _gameRound.eliminatePlayerIndexes = _eliminatePlayerIndexes;
+        _gameRound.buffUsersIndexes = _buffUsersIndexes;
+        _gameRound.eventsIndexes = _eventsIndexes;
+        gameData.editGameRound(_gameId, _round, _gameRound);
     }
 
 
