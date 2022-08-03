@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 library SafeMath {
@@ -240,23 +239,10 @@ interface IGameData {
 }
 
 
-contract Operator {
+contract Permission {
+    address public owner;
     address payable public operator;
     mapping(string => address payable) appOperators;
-
-    function _changeOperator(address payable _newOperator) internal {
-        operator = _newOperator;
-    }
-
-    function _addAppOperator(string memory _appId, address payable _newOperator) internal {
-        appOperators[_appId] = _newOperator;
-    }
-
-}
-
-
-contract Ownable is Operator {
-    address public owner;
 
     modifier onlyOwner(){
         require(msg.sender == owner, "Only Owner");
@@ -266,9 +252,27 @@ contract Ownable is Operator {
     function transferOwner(address _newOwner) public onlyOwner {
         owner = _newOwner;
     }
+
+    function isOperator(string memory _appId) public view returns (bool){
+        return (operator == msg.sender || address(appOperators[_appId]) == msg.sender || owner == msg.sender);
+    }
+
+    function changeOperator(address payable _newOperator) public onlyOwner {
+        operator = _newOperator;
+    }
+
+    function addAppOperator(string memory _appId, address payable _newOperator) public onlyOwner {
+        appOperators[_appId] = _newOperator;
+    }
+
+    function delAppOperator(string memory _appId) public onlyOwner {
+        appOperators[_appId] = payable(0);
+    }
+
+
 }
 
-contract Game is Ownable {
+contract Game is Permission {
 
     using SafeMath for uint256;
 
@@ -290,23 +294,10 @@ contract Game is Ownable {
         _;
     }
 
-
     modifier onlyAdmin(string memory _appId) {
-        require(adminData.checkAdmin(_appId, msg.sender) || operator == msg.sender
-        || address(appOperators[_appId]) == msg.sender || owner == msg.sender, "Only admin");
+        require(adminData.checkAdmin(_appId, msg.sender) || isOperator(_appId), "Only admin");
         _;
     }
-
-    function changeOperator(address payable _newOperator) public onlyOwner {
-        _changeOperator(_newOperator);
-    }
-
-    function addAppOperator(string memory _appId, address payable _newOperator) public onlyOwner {
-        _addAppOperator(_appId, _newOperator);
-    }
-
-
-
 
 
 }

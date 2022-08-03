@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 
-
 interface IERC20 {
     /**
      * @dev Returns the amount of tokens in existence.
@@ -145,25 +144,17 @@ library SafeMath {
 
 
 contract Operator {
-    mapping(address => bool) public operators;
 
+
+}
+
+contract Permission {
+    address public owner;
+    mapping(address => bool) public operators;
     modifier onlyOperator(){
         require(operators[msg.sender], "Only Operator");
         _;
     }
-
-    function _addOperator(address _newOperator) internal {
-        operators[_newOperator] = true;
-    }
-
-    function _delOperator(address _removeOperator) internal  {
-        operators[_removeOperator] = false;
-    }
-
-}
-
-contract Ownable is Operator {
-    address public owner;
 
     modifier onlyOwner(){
         require(msg.sender == owner, "Only Owner");
@@ -171,23 +162,25 @@ contract Ownable is Operator {
     }
 
     function transferOwner(address _newOwner) public onlyOwner {
-        _delOperator(owner);
+        operators[owner] = false;
         owner = _newOwner;
         operators[_newOwner] = true;
     }
-}
-
-
-contract DataStorage is Ownable {
-    using SafeMath for uint256;
 
     function addOperator(address _newOperator) public onlyOwner {
-        _addOperator(_newOperator);
+        operators[_newOperator] = true;
     }
 
     function delOperator(address _removeOperator) public onlyOwner {
-        _delOperator(_removeOperator);
+        operators[_removeOperator] = false;
     }
+
+}
+
+
+contract DataStorage is Permission {
+    using SafeMath for uint256;
+
 
 
     constructor() {
@@ -250,7 +243,7 @@ contract DataStorage is Ownable {
         }
     }
 
-    function overGame( uint256 _id) public onlyOperator {
+    function overGame(uint256 _id) public onlyOperator {
         games[_id].over = true;
         _popOverGame(_id);
     }
@@ -353,7 +346,7 @@ contract DataStorage is Ownable {
     mapping(uint256 => GameResult[]) private gameResults;
 
 
-    function setGameResult( GameResult memory _result) public onlyOperator {
+    function setGameResult(GameResult memory _result) public onlyOperator {
         if (games[_result.id].exist) {
             gameResults[_result.id].push(_result);
         }
