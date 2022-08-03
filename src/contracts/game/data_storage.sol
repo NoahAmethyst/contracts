@@ -143,11 +143,6 @@ library SafeMath {
 }
 
 
-contract Operator {
-
-
-}
-
 contract Permission {
     address public owner;
     mapping(address => bool) public operators;
