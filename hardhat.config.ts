@@ -8,8 +8,8 @@ import dotenv from "dotenv";
 import type { HttpNetworkUserConfig } from "hardhat/types";
 import type { MochaOptions } from "mocha";
 import yargs from "yargs";
+import {setupTasks} from "./src/tasks/testTask";
 
-// import { setupTasks } from "./src/tasks";
 
 const argv = yargs
   .option("network", {
@@ -56,7 +56,7 @@ switch (MOCHA_CONF) {
     throw new Error("Invalid MOCHA_CONF");
 }
 
-// setupTasks();
+setupTasks();
 
 export default {
   mocha,
