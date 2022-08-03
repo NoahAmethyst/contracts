@@ -329,24 +329,23 @@ contract Game is Permission {
     function buyErc20Ticket(uint256 _gameId) public checkGame(_gameId) {
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
         require(!game.ticketIsEth, "ticket not erc20 token");
-        uint256 round = gameData.getGameResultLength(_gameId).sub(1);
-        bool hasPlayer = _checkIsJoin(_gameId, round, msg.sender);
+        uint256 nowRound = gameData.getGameResultLength(_gameId).sub(1);
+        bool hasPlayer = _checkIsJoin(_gameId, nowRound, msg.sender);
         require(!hasPlayer, "already buy tickets");
         bool success = game.ticketsToken.transferFrom(msg.sender, address(this), game.ticketAmount);
         require(success, "buy ticket failed");
-
-        gameData.addPlayer(_gameId, round.sub(1), msg.sender);
+        gameData.addPlayer(_gameId, nowRound, msg.sender);
     }
 
 
     function buyEthTicket(uint256 _gameId) public payable checkGame(_gameId) {
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
         require(game.ticketIsEth, "ticket not native token");
-        uint256 round = gameData.getGameResultLength(_gameId).sub(1);
-        bool hasPlayer = _checkIsJoin(_gameId, round, msg.sender);
+        uint256 nowRound = gameData.getGameResultLength(_gameId).sub(1);
+        bool hasPlayer = _checkIsJoin(_gameId, nowRound, msg.sender);
         require(!hasPlayer, "already buy tickets");
         require(msg.value >= game.ticketAmount, "pay for ticket not enough");
-        gameData.addPlayer(_gameId, round.sub(1), msg.sender);
+        gameData.addPlayer(_gameId, nowRound, msg.sender);
     }
 
     function buyBuff(uint256 _gameId, uint256 _round, uint256 _buffId) public {
