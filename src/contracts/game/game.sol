@@ -358,6 +358,7 @@ contract Game is Permission {
                 break;
             }
         }
+        require(buffExist, "invalid buff");
 
         address[] memory players = gameData.getPlayers(_gameId, _round);
         uint index = 0;
@@ -371,7 +372,7 @@ contract Game is Permission {
         }
 
         require(hasPlayer, "not join the game");
-        require(buffExist, "invalid buff");
+
         bool success = buffToken.transferFrom(msg.sender, address(this), buffValue);
         require(success, "buy buff failed");
         gameData.addBuffPlayers(_gameId, _round, index);
