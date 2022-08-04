@@ -182,7 +182,6 @@ contract DataStorage is Permission {
     }
 
     //game
-    //game
     struct GameDetail {
         uint256 id;
         uint256 category;
@@ -193,8 +192,6 @@ contract DataStorage is Permission {
         string introduction;
         string endContent;
 
-        uint256 eliminateMinNum;
-        uint256 eliminateMaxNum;
         // v/100
         uint256 eliminateProportion;
         uint256 awardProportion;
