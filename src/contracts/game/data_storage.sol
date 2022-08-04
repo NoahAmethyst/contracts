@@ -311,9 +311,10 @@ contract DataStorage is Permission {
         uint256 participate;
         address sponsor;
         uint256 launchTime;
-        uint256[] eliminatePlayerIndexes;
-        uint256[] buffUsersIndexes;
-        uint256[] eventsIndexes;
+        int256[] eliminatePlayerIndexes;
+        int256[] buffUsersIndexes;
+        int256[] eventsIndexes;
+        bool over;
         bool exist;
     }
 
@@ -328,10 +329,11 @@ contract DataStorage is Permission {
                 0,
                 _sponsor,
                 _launchTime,
-                new uint256[](0),
-                new uint256[](0),
-                new uint256[](0),
-                true
+                new int256[](0),
+                new int256[](0),
+                new int256[](0),
+                true,
+                false
             );
             gameRoundList[_gameId].push(gameRound);
         }
@@ -345,8 +347,8 @@ contract DataStorage is Permission {
         return gameRoundList[_gameId][_round];
     }
 
-    function getGameLatestRound(uint256 _gameId) public view returns (uint256){
-        return gameRoundList[_gameId].length;
+    function getGameLatestRoundNum(uint256 _gameId) public view returns (uint256){
+        return gameRoundList[_gameId].length.sub(1);
     }
 
     function getGameRoundList(uint256 _gameId) public view returns (GameRound[] memory){
