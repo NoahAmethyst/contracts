@@ -24,6 +24,7 @@ export const CONTRACT_NAMES = {
     quiz: "Quiz",
     game_data: "GameDataStorage",
     game: "Game",
+    game_logic: "GameLogic"
 
 } as const;
 

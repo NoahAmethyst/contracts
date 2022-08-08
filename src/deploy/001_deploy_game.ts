@@ -26,7 +26,7 @@ const deployTest: DeployFunction = async function (
 
     const {deploy} = hre.deployments;
 
-    const {data_storage, game_data, game} = CONTRACT_NAMES;
+    const {data_storage, game_data, game, game_logic} = CONTRACT_NAMES;
 
     let deployed_data_contract = await deploy(data_storage, {
         from: owner,
@@ -51,6 +51,17 @@ const deployTest: DeployFunction = async function (
     console.log("deployed game data contract ", deployed_game_data_contract.address)
 
 
+    let deployed_game_logic_contract = await deploy(game_logic, {
+        from: owner,
+        gasLimit: 12500000,
+        // gasPrice: ethers.utils.parseUnits("100", "gwei"),
+        // deterministicDeployment: utils.formatBytes32String("test12"),
+        log: true,
+        args: [deployed_game_data_contract.address]
+    });
+
+    console.log("deployed game data contract ", deployed_game_logic_contract.address)
+
     let deployed_game_contract = await deploy(game, {
         from: owner,
         gasLimit: 12500000,
@@ -58,15 +69,19 @@ const deployTest: DeployFunction = async function (
         // deterministicDeployment: utils.formatBytes32String("test12"),
         log: true,
         // nonce: 8,
-        args: [owner, deployed_data_contract.address, deployed_game_data_contract.address, "0x8464135c8F25Da09e49BC8782676a84730C318bC", 100000000]
+        args: [owner, deployed_data_contract.address,
+            deployed_game_data_contract.address,
+            deployed_game_logic_contract.address,
+            "0x8464135c8F25Da09e49BC8782676a84730C318bC",
+            100000000]
     });
-
 
 
     console.log("deployed game contract ", deployed_game_contract.address)
 
     const adminDataContract = await hre.ethers.getContractAt(CONTRACT_NAMES.data_storage, deployed_data_contract.address)
     const gameDataContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game_data, deployed_game_data_contract.address)
+    const gameLogicContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game_logic, deployed_game_logic_contract.address)
     const gameContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game, deployed_game_contract.address)
 
 
@@ -75,32 +90,31 @@ const deployTest: DeployFunction = async function (
     await dataOperator.addAdmin("test", signedOwner.address)
     const gameDataOperation = await gameDataContract.connect(signedOwner)
     await gameDataOperation.addOperator(deployed_game_contract.address)
-    console.log("add operator ", deployed_game_contract.address)
-    let round = await gameDataContract.getGameRound(1, 1)
-    console.log("round ", round)
+    console.log("add game data operator ", deployed_game_contract.address)
+    const gameLogicOperation = await gameLogicContract.connect(signedOwner)
+    await gameLogicOperation.addOperator(deployed_game_contract.address)
+    console.log("add game data operator ", deployed_game_contract.address)
 
-    const gameOperation = await gameContract.connect(signedOwner)
-
-
-    let _game: [BigNumberish, BigNumberish, string, BigNumberish,
-        BigNumberish, string, string, string,
-        BigNumberish, BigNumberish, BigNumberish, BigNumberish[],
-        string[], boolean, Address, BigNumberish,
-        BigNumberish, BigNumberish, boolean, BigNumberish,
-        BigNumberish, boolean, Promise<string>] = [
-        BigNumber.from(1), BigNumber.from(1), "test", BigNumber.from(1),
-        BigNumber.from(1), "test", "test", "test",
-        BigNumber.from(1), BigNumber.from(1), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
-        ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", 1,
-        BigNumber.from(1), BigNumber.from(1), false, BigNumber.from(1),
-        BigNumber.from(1), true, signedOwner.getAddress()
-    ];
-
-    await gameOperation.createGame(_game)
-    let gameDetail = await gameDataOperation.getGame(1)
-    console.log("gameDetail ", gameDetail)
-    await gameOperation.startGame("test", 1, 10000000, {value: ethers.utils.parseEther("0.000000001")})
-    await gameOperation.gameRoundOver("test", 1, 0)
+    // let round = await gameDataContract.getGameRound(1, 1)
+    // console.log("round ", round)
+    //
+    // const gameOperation = await gameContract.connect(signedOwner)
+    //
+    //
+    // let _game = [
+    //     BigNumber.from(1), BigNumber.from(1), "test", BigNumber.from(1),
+    //     BigNumber.from(1), "test", "test", "test",
+    //     BigNumber.from(1), BigNumber.from(1), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
+    //     ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", 1,
+    //     BigNumber.from(1), BigNumber.from(1), false, BigNumber.from(1),
+    //     BigNumber.from(1), true, signedOwner.getAddress()
+    // ];
+    //
+    // await gameOperation.createGame(_game)
+    // let gameDetail = await gameDataOperation.getGame(1)
+    // console.log("gameDetail ", gameDetail)
+    // await gameOperation.startGame("test", 1, 10000000, {value: ethers.utils.parseEther("0.000000001")})
+    // await gameOperation.gameRoundOver("test", 1, 0)
 
 };
 export default deployTest;
