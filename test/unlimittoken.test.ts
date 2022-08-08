@@ -1,8 +1,9 @@
 import { expect } from "chai";
 import { Contract } from "ethers";
-import {ethers, waffle, upgrades} from "hardhat";
+import {ethers, waffle} from "hardhat";
 import { AllowListReader } from "../src/ts/reader";
 import symbols = Mocha.reporters.Base.symbols;
+import {UnlimitedToken} from "../ethereum-abi-types/UnlimitedToken";
 
 describe("ulimittoken", () => {
   const [deployer, owner, nonSolver, ...solvers] = waffle.provider.getWallets();
@@ -22,7 +23,8 @@ describe("ulimittoken", () => {
 
   describe("check symbol", () => {
     it("symbol should be QZT", async () => {
-      expect(await tokenContract.connect(owner).symbol()).to.equal("QZT")
+      const contract = (tokenContract.connect(owner) as unknown) as UnlimitedToken
+      expect(await contract.symbol()).to.equal("QZT")
     });
   });
 });
