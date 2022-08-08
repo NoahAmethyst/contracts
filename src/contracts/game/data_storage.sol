@@ -223,6 +223,13 @@ contract GameDataStorage is Permission {
     uint256[] private gameIds;
 
 
+    uint256 public availableSize = 100;
+
+    function setAvailableSize(uint256 _newSize) public onlyOwner {
+        availableSize = _newSize;
+    }
+
+
     function setGame(string memory _appId, GameDetail memory _game) public onlyOperator {
         if (!games[_game.id].exist) {
             games[_game.id] = _game;
@@ -250,6 +257,24 @@ contract GameDataStorage is Permission {
 
     function getGameIds() public view returns (uint256[] memory){
         return gameIds;
+    }
+
+
+    function getAvailiableGameIds() public view returns (uint256[] memory){
+        uint256[] memory availableIds = new uint256[](availableSize);
+        uint256 size = 0;
+        for (uint i = 0; i < gameIds.length; i++) {
+            if (size >= 100) {
+                break;
+            }
+            GameDetail memory game = games[gameIds[i]];
+            if (game.effectEndTime >= block.timestamp) {
+                size++;
+                availableIds[size] = gameIds[i];
+            }
+        }
+
+        return availableIds;
     }
 
     function getPlayers(uint256 _gameId, uint256 _ground) public view returns (address[] memory){
@@ -341,7 +366,6 @@ contract GameDataStorage is Permission {
     }
 
     function getGameRound(uint256 _gameId, uint256 _round) public view returns (GameRound memory){
-
         GameRound memory gameRound = GameRound(
             0,
             new address[](0),
@@ -355,11 +379,11 @@ contract GameDataStorage is Permission {
             false
         );
 
-        if (gameRoundList[_gameId].length==0){
+        if (gameRoundList[_gameId].length == 0) {
             return gameRound;
         }
 
-        if (gameRoundList[_gameId].length.sub(1)<_round){
+        if (gameRoundList[_gameId].length.sub(1) < _round) {
             return gameRound;
         }
 
@@ -367,10 +391,10 @@ contract GameDataStorage is Permission {
     }
 
     function getGameLatestRoundNum(uint256 _gameId) public view returns (int256){
-        if (gameRoundList[_gameId].length>0){
+        if (gameRoundList[_gameId].length > 0) {
             return int256(gameRoundList[_gameId].length.sub(1));
-        }else{
-            return -1;
+        } else {
+            return - 1;
         }
 
     }
@@ -378,6 +402,4 @@ contract GameDataStorage is Permission {
     function getGameRoundList(uint256 _gameId) public view returns (GameRound[] memory){
         return gameRoundList[_gameId];
     }
-
-
 }

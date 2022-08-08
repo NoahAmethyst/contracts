@@ -13,32 +13,32 @@ const deployUnlimitToken: DeployFunction = async function (
     hre
         : HardhatRuntimeEnvironment) {
 
-    // console.log("start deploy unlimited token")
-    //
-    // const {deployer, owner, manager, operator} = await hre.getNamedAccounts();
-    //
-    // console.log("current deployer is ", deployer)
-    // console.log("current owner is ", owner)
-    // console.log("current operator is ", operator)
-    //
-    // const {deploy} = hre.deployments;
-    //
-    // const {unlimittoken} = CONTRACT_NAMES;
-    //
-    //
-    // console.log(await ethers.provider.getGasPrice())
-    // let deployed_contract = await deploy(unlimittoken, {
-    //     from: owner,
-    //     // gasLimit: 2000000,
-    //     // gasPrice: ethers.utils.parseUnits("100", "gwei"),
-    //     // deterministicDeployment: utils.formatBytes32String("test12"),
-    //     log: true,
-    //     // nonce: 8,
-    //     args: ["TestToken", "TT"],
-    // });
-    //
-    // console.log("deployed contract ", deployed_contract.address)
-    //
+    console.log("start deploy unlimited token")
+
+    const {deployer, owner, manager, operator} = await hre.getNamedAccounts();
+
+    console.log("current deployer is ", deployer)
+    console.log("current owner is ", owner)
+    console.log("current operator is ", operator)
+
+    const {deploy} = hre.deployments;
+
+    const {unlimittoken} = CONTRACT_NAMES;
+
+
+    console.log(await ethers.provider.getGasPrice())
+    let deployed_contract = await deploy(unlimittoken, {
+        from: owner,
+        // gasLimit: 2000000,
+        // gasPrice: ethers.utils.parseUnits("100", "gwei"),
+        // deterministicDeployment: utils.formatBytes32String("test12"),
+        log: true,
+        // nonce: 8,
+        args: ["TestToken", "TT"],
+    });
+
+    console.log("deployed token contract ", deployed_contract.address)
+
     // const contract = await hre.ethers.getContractAt(CONTRACT_NAMES.unlimittoken, deployed_contract.address)
     //
     // // const contract = await hre.ethers.getContractAt(CONTRACT_NAMES.unlimittoken, "0xB7CB18d334A74472Bd32a1D572802A58E0bDC61d")

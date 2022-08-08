@@ -9,6 +9,9 @@ import {getNamedSigner} from "./ts/signers";
 import {getSolvers} from "./ts/solver";
 import {transactionUrl} from "./ts/tui";
 import {CONTRACT_NAMES} from "../ts";
+import {BigNumber, BigNumberish} from "ethers";
+import {string} from "hardhat/internal/core/params/argumentTypes";
+import {Address} from "hardhat-deploy/dist/types";
 
 const solversTaskList = ["add", "check", "remove", "list"] as const;
 type SolversTasks = typeof solversTaskList[number];
@@ -22,29 +25,49 @@ async function testTask(args: Args, hre: HardhatRuntimeEnvironment) {
     console.log("test task")
     console.log(args)
 
-    const contract = await hre.ethers.getContractAt(CONTRACT_NAMES.unlimittoken, "0xe2F843862BADa0E9965989C2bFC36fb64aC87aa6")
-    // const contract = await getDeployedContract(
-    //   CONTRACT_NAMES.unlimittoken,
-    //   hre,
-    // );
+    const adminContractAddr = "0x71C95911E9a5D330f4D621842EC243EE1343292e"
+    const gameDataContractAddr = "0x948B3c65b89DF0B4894ABE91E6D02FE579834F8F"
+    const gameContractAddr = "0x712516e61C8B383dF4A63CFe83d7701Bce54B03e"
 
 
-    if (args.printTransaction) {
-        const data = contract.interface.encodeFunctionData("symbol", []);
-        console.log(`transaction:`);
-        console.log(`To:   ${contract.address}`);
-        console.log(`Data: ${data}`);
-    } else {
-        const owner = await getNamedSigner(hre, "owner");
-        const operation = await contract.connect(owner)
-        const _owner = await operation.owner();
-        console.log("contract owner ", _owner);
-        // await contract.connect(owner).mint("0xA5Ba38f32404Bc3C2de4ff540718054a7d6ed2Cd", 100000);
-        let balance = await operation.balanceOf("0xA5Ba38f32404Bc3C2de4ff540718054a7d6ed2Cd");
-        console.log("balance ", balance)
+    const adminDataContract = await hre.ethers.getContractAt(CONTRACT_NAMES.data_storage, adminContractAddr)
+    const gameDataContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game_data, gameDataContractAddr)
+    const gameContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game, gameContractAddr)
+
+    // const adminDataContract = await hre.ethers.getContractAt(CONTRACT_NAMES.data_storage, deployed_data_contract.address)
+    // const gameDataContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game_data, deployed_game_data_contract.address)
+    // const gameContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game, deployed_game_contract.address)
 
 
-    }
+    const signedOwner = await getNamedSigner(hre, "owner");
+    const dataOperator = await adminDataContract.connect(signedOwner)
+    await dataOperator.addAdmin("test", signedOwner.address)
+    const gameDataOperation = await gameDataContract.connect(signedOwner)
+    await gameDataOperation.addOperator(gameContractAddr)
+    console.log("add operator ", gameContractAddr)
+    let round = await gameDataContract.getGameRound(1, 1)
+    console.log(round)
+
+    const gameOperation = await gameContract.connect(signedOwner)
+
+
+    let _game: [BigNumberish, BigNumberish, string, BigNumberish,
+        BigNumberish, string, string, string,
+        BigNumberish, BigNumberish, BigNumberish, BigNumberish[],
+        string[], boolean, Address, BigNumberish,
+        BigNumberish, BigNumberish, boolean, BigNumberish,
+        BigNumberish, boolean, Promise<string>] = [
+        BigNumber.from(1), BigNumber.from(1), "test", BigNumber.from(1),
+        BigNumber.from(1), "test", "test", "test",
+        BigNumber.from(1), BigNumber.from(1), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
+        ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", 1,
+        BigNumber.from(1), BigNumber.from(1), false, BigNumber.from(1),
+        BigNumber.from(1), true, signedOwner.getAddress()
+    ];
+
+    await gameOperation.createGame(_game)
+    await gameOperation.startGame("test", 1, 10000000, 100000000)
+    await gameOperation.gameRoundOver("test", 1, 0)
 }
 
 
