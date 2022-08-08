@@ -43,7 +43,7 @@ const deployTest: DeployFunction = async function (
     let deployed_game_data_contract = await deploy(game_data, {
         from: owner,
         gasLimit: 12500000,
-        gasPrice: ethers.utils.parseUnits("100", "gwei"),
+        // gasPrice: ethers.utils.parseUnits("100", "gwei"),
         // deterministicDeployment: utils.formatBytes32String("test12"),
         log: true,
     });
@@ -54,12 +54,13 @@ const deployTest: DeployFunction = async function (
     let deployed_game_contract = await deploy(game, {
         from: owner,
         gasLimit: 12500000,
-        gasPrice: ethers.utils.parseUnits("100", "gwei"),
+        // gasPrice: ethers.utils.parseUnits("100", "gwei"),
         // deterministicDeployment: utils.formatBytes32String("test12"),
         log: true,
         // nonce: 8,
         args: [owner, deployed_data_contract.address, deployed_game_data_contract.address, "0x8464135c8F25Da09e49BC8782676a84730C318bC", 100000000]
     });
+
 
 
     console.log("deployed game contract ", deployed_game_contract.address)

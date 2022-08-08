@@ -21,7 +21,7 @@ interface Args {
     printTransaction: boolean;
 }
 
-async function testTask(args: Args, hre: HardhatRuntimeEnvironment) {
+async function initGame(args: Args, hre: HardhatRuntimeEnvironment) {
     console.log("test task")
     console.log(args)
 
@@ -85,14 +85,6 @@ const isSolver = async (solver: string, hre: HardhatRuntimeEnvironment) => {
 };
 
 export const setupTasks: () => void = () => {
-    task("test", "this is a test task")
-        .addOptionalParam(
-            "param",
-            `this is a positional param`,
-        )
-        .addOptionalParam(
-            "printTransaction",
-            `this is a positional param`,
-        )
-        .setAction(testTask);
+    task("initGameTask", "initialize game status firstly")
+        .setAction(initGame);
 };
