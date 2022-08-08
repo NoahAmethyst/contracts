@@ -61,7 +61,7 @@ setupTasks();
 export default {
     mocha,
     paths: {
-        artifacts: "build/artifacts",
+        // artifacts: "build/artifacts",
         cache: "build/cache",
         deploy: "src/deploy",
         sources: "src/contracts",

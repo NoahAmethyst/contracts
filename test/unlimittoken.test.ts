@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { Contract } from "ethers";
-import { ethers, waffle } from "hardhat";
-
+import {ethers, waffle, upgrades} from "hardhat";
 import { AllowListReader } from "../src/ts/reader";
 import symbols = Mocha.reporters.Base.symbols;
 
