@@ -173,7 +173,7 @@ contract Permission {
 }
 
 
-contract DataStorage is Permission {
+contract GameDataStorage is Permission {
     using SafeMath for uint256;
 
     constructor() {
@@ -190,7 +190,7 @@ contract DataStorage is Permission {
         uint256 botType;
         string title;
         string introduction;
-        string endContent;
+        string story;
 
         // v/100
         uint256 eliminateProportion;
@@ -341,11 +341,38 @@ contract DataStorage is Permission {
     }
 
     function getGameRound(uint256 _gameId, uint256 _round) public view returns (GameRound memory){
+
+        GameRound memory gameRound = GameRound(
+            0,
+            new address[](0),
+            0,
+            address(0),
+            0,
+            new int256[](0),
+            new int256[](0),
+            new int256[](0),
+            false,
+            false
+        );
+
+        if (gameRoundList[_gameId].length==0){
+            return gameRound;
+        }
+
+        if (gameRoundList[_gameId].length.sub(1)<_round){
+            return gameRound;
+        }
+
         return gameRoundList[_gameId][_round];
     }
 
-    function getGameLatestRoundNum(uint256 _gameId) public view returns (uint256){
-        return gameRoundList[_gameId].length.sub(1);
+    function getGameLatestRoundNum(uint256 _gameId) public view returns (int256){
+        if (gameRoundList[_gameId].length>0){
+            return int256(gameRoundList[_gameId].length.sub(1));
+        }else{
+            return -1;
+        }
+
     }
 
     function getGameRoundList(uint256 _gameId) public view returns (GameRound[] memory){

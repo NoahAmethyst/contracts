@@ -22,6 +22,9 @@ export const CONTRACT_NAMES = {
     data_storage: "DataStorage",
     lottery: "LotteryPool",
     quiz: "Quiz",
+    game_data: "GameDataStorage",
+    game: "Game",
+
 } as const;
 
 /**

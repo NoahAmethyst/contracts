@@ -248,7 +248,6 @@ contract UnlimitedToken is ERC20 {
         operators[_operator] = true;
     }
 
-
     function mint(address account, uint256 amount) public onlyOperator {
         _mint(account, amount);
     }

@@ -160,7 +160,7 @@ interface IGameData {
         uint256 botType;
         string title;
         string introduction;
-        string endContent;
+        string story;
 
         // v/100
         uint256 eliminateProportion;
@@ -279,9 +279,10 @@ contract Game is Permission {
     uint256 public buffValue;
     IERC20[] private erc20List;
     mapping(IERC20 => bool) public erc20Exist;
-
-
-
+    mapping(uint256 => mapping(uint256 => address[])) private winners;
+    mapping(uint256 => mapping(uint256 => int256[])) private  eliminatePlayerIndexes;
+    mapping(uint256 => mapping(uint256 => int256[])) private buffUsersIndexes;
+    mapping(uint256 => mapping(uint256 => int256[])) private eventsIndexes;
 
     constructor(address payable _operator, IAdminData _adminData, IGameData _gameData, IQuizToken _buffToken, uint256 _buffValue) {
         owner = msg.sender;
@@ -398,6 +399,7 @@ contract Game is Permission {
         (bool hasPlayer, uint256 index) = _checkIsJoin(_gameId, _round, msg.sender);
         require(hasPlayer, "not in game");
 
+        require(!_checkHasBuff(_gameId, _round, index), "already has buff");
         buffToken.burn(msg.sender, buffValue);
         gameData.addBuffPlayers(_gameId, _round, index);
     }
@@ -414,21 +416,64 @@ contract Game is Permission {
     }
 
 
-    function gameRoundOver(string memory _appId, uint256 _gameId, uint256 _round, address[] memory _winners,
-        int256[] memory _eliminatePlayerIndexes, int256[] memory _buffUsersIndexes, int256[] memory _eventsIndexes) public
+    function gameRoundOver(string memory _appId, uint256 _gameId, uint256 _round) public
     {
         require(isOperator(_appId), "only operator");
         checkGameRound(_gameId, _round);
         gameRoundNotOver(_gameId, _round);
+        address[] memory players = gameData.getPlayers(_gameId, _round);
         IGameData.GameRound memory _gameRound = gameData.getGameRound(_gameId, _round);
-        _gameRound.winners = _winners;
-        _gameRound.participate = gameData.getPlayers(_gameId, _round).length;
-        _gameRound.eliminatePlayerIndexes = _eliminatePlayerIndexes;
-        _gameRound.buffUsersIndexes = _buffUsersIndexes;
-        _gameRound.eventsIndexes = _eventsIndexes;
+        _gameRound.winners = winners[_gameId][_round];
+        _gameRound.participate = players.length;
+        _gameRound.eliminatePlayerIndexes = eliminatePlayerIndexes[_gameId][_round];
+        _gameRound.buffUsersIndexes = buffUsersIndexes[_gameId][_round];
+        _gameRound.eventsIndexes = eventsIndexes[_gameId][_round];
         _gameRound.over = true;
         gameData.editGameRound(_gameId, _round, _gameRound);
-        _awardWinner(_gameId, _winners, _round);
+        _awardWinner(_gameId, _gameRound.winners, _round);
+    }
+
+
+    function _calculateResult(uint256 _gameId, uint256 _round, address[] memory _players) internal {
+        IGameData.GameDetail memory game = gameData.getGame(_gameId);
+        uint256 remainPlayer = _players.length;
+        if (remainPlayer<=game.winNum){
+            winners[_gameId][_round]=_players;
+            return;
+        }
+        while (remainPlayer > game.winNum) {
+            uint256 eliminateNum = remainPlayer.mul(game.eliminateProportion).div(100);
+            if (eliminateNum == 0) {
+                eliminateNum = 1;
+            }
+            for (uint i = 0; i < eliminateNum; i++) {
+                uint256 eliminateIndex = _randomNumber(_players.length, eliminateNum);
+                while (_checkHasIndex(eliminateIndex, eliminatePlayerIndexes[_gameId][_round])) {
+                    eliminateIndex = _randomNumber(_players.length, eliminateNum);
+                }
+
+                if (_checkHasBuff(_gameId, _round, eliminateIndex) && !_checkHasIndex(eliminateIndex, buffUsersIndexes[_gameId][_round])) {
+                    buffUsersIndexes[_gameId][_round].push(int256(eliminateIndex));
+                } else {
+                    eliminatePlayerIndexes[_gameId][_round].push(int256(eliminateIndex));
+                }
+
+                //round
+                eliminatePlayerIndexes[_gameId][_round].push(- 1);
+                //event
+                eventsIndexes[_gameId][_round].push(int256(_randomNumber(game.events.length, 1)));
+                //useBuff
+                buffUsersIndexes[_gameId][_round].push(- 1);
+                remainPlayer--;
+            }
+        }
+
+
+        for (uint i = 0; i < _players.length; i++) {
+            if (!_checkHasIndex(i, eliminatePlayerIndexes[_gameId][_round])) {
+                winners[_gameId][_round].push(_players[i]);
+            }
+        }
     }
 
 
@@ -493,4 +538,31 @@ contract Game is Permission {
         }
         return (hasPlayer, index);
     }
+
+    function _checkHasBuff(uint256 _gameId, uint256 _round, uint256 _index) internal view returns (bool){
+        uint256[] memory indexes = gameData.getBuffPlayers(_gameId, _round);
+        bool hasBuff = false;
+        for (uint i = 0; i < indexes.length; i++) {
+            if (indexes[i] == _index) {
+                hasBuff = true;
+            }
+        }
+        return hasBuff;
+    }
+
+    function _checkHasIndex(uint256 _index, int256[] memory _list) internal pure returns (bool){
+        bool hasIndex = false;
+        for (uint i = 0; i < _list.length; i++) {
+            if (_list[i] == int256(_index)) {
+                hasIndex = true;
+            }
+        }
+        return hasIndex;
+    }
+
+    function _randomNumber(uint256 _scope, uint256 _salt) internal view returns (uint256) {
+        return uint256(keccak256(abi.encode(abi.encodePacked(block.timestamp, block.difficulty), _salt))) % _scope;
+    }
+
+
 }
