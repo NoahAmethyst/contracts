@@ -354,8 +354,8 @@ contract GameDataStorage is Permission {
                 new int256[](0),
                 new int256[](0),
                 new int256[](0),
-                true,
-                false
+                false,
+                true
             );
             gameRoundList[_gameId].push(gameRound);
         }
