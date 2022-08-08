@@ -51,12 +51,7 @@ async function initGame(args: Args, hre: HardhatRuntimeEnvironment) {
     const gameOperation = await gameContract.connect(signedOwner)
 
 
-    let _game: [BigNumberish, BigNumberish, string, BigNumberish,
-        BigNumberish, string, string, string,
-        BigNumberish, BigNumberish, BigNumberish, BigNumberish[],
-        string[], boolean, Address, BigNumberish,
-        BigNumberish, BigNumberish, boolean, BigNumberish,
-        BigNumberish, boolean, Promise<string>] = [
+    let _game = [
         BigNumber.from(1), BigNumber.from(1), "test", BigNumber.from(1),
         BigNumber.from(1), "test", "test", "test",
         BigNumber.from(1), BigNumber.from(1), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
@@ -66,7 +61,7 @@ async function initGame(args: Args, hre: HardhatRuntimeEnvironment) {
     ];
 
     await gameOperation.createGame(_game)
-    await gameOperation.startGame("test", 1, 10000000, 100000000)
+    await gameOperation.startGame("test", 1, 10000000)
     await gameOperation.gameRoundOver("test", 1, 0)
 }
 

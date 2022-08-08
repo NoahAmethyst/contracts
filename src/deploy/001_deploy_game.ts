@@ -65,42 +65,42 @@ const deployTest: DeployFunction = async function (
 
     console.log("deployed game contract ", deployed_game_contract.address)
 
-    // const adminDataContract = await hre.ethers.getContractAt(CONTRACT_NAMES.data_storage, deployed_data_contract.address)
-    // const gameDataContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game_data, deployed_game_data_contract.address)
-    // const gameContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game, deployed_game_contract.address)
-    //
-    //
-    // const signedOwner = await getNamedSigner(hre, "owner");
-    // const dataOperator = await adminDataContract.connect(signedOwner)
-    // await dataOperator.addAdmin("test", signedOwner.address)
-    // const gameDataOperation = await gameDataContract.connect(signedOwner)
-    // await gameDataOperation.addOperator(deployed_game_contract.address)
-    // console.log("add operator ", deployed_game_contract.address)
-    // let round = await gameDataContract.getGameRound(1, 1)
-    // console.log("round ", round)
-    //
-    // const gameOperation = await gameContract.connect(signedOwner)
-    //
-    //
-    // let _game: [BigNumberish, BigNumberish, string, BigNumberish,
-    //     BigNumberish, string, string, string,
-    //     BigNumberish, BigNumberish, BigNumberish, BigNumberish[],
-    //     string[], boolean, Address, BigNumberish,
-    //     BigNumberish, BigNumberish, boolean, BigNumberish,
-    //     BigNumberish, boolean, Promise<string>] = [
-    //     BigNumber.from(1), BigNumber.from(1), "test", BigNumber.from(1),
-    //     BigNumber.from(1), "test", "test", "test",
-    //     BigNumber.from(1), BigNumber.from(1), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
-    //     ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", 1,
-    //     BigNumber.from(1), BigNumber.from(1), false, BigNumber.from(1),
-    //     BigNumber.from(1), true, signedOwner.getAddress()
-    // ];
-    //
-    // await gameOperation.createGame(_game)
-    // let gameDetail = await gameDataOperation.getGame(1)
-    // console.log("gameDetail ", gameDetail)
-    // await gameOperation.startGame("test", 1, 10000000)
-    // await gameOperation.gameRoundOver("test", 1, 0)
+    const adminDataContract = await hre.ethers.getContractAt(CONTRACT_NAMES.data_storage, deployed_data_contract.address)
+    const gameDataContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game_data, deployed_game_data_contract.address)
+    const gameContract = await hre.ethers.getContractAt(CONTRACT_NAMES.game, deployed_game_contract.address)
+
+
+    const signedOwner = await getNamedSigner(hre, "owner");
+    const dataOperator = await adminDataContract.connect(signedOwner)
+    await dataOperator.addAdmin("test", signedOwner.address)
+    const gameDataOperation = await gameDataContract.connect(signedOwner)
+    await gameDataOperation.addOperator(deployed_game_contract.address)
+    console.log("add operator ", deployed_game_contract.address)
+    let round = await gameDataContract.getGameRound(1, 1)
+    console.log("round ", round)
+
+    const gameOperation = await gameContract.connect(signedOwner)
+
+
+    let _game: [BigNumberish, BigNumberish, string, BigNumberish,
+        BigNumberish, string, string, string,
+        BigNumberish, BigNumberish, BigNumberish, BigNumberish[],
+        string[], boolean, Address, BigNumberish,
+        BigNumberish, BigNumberish, boolean, BigNumberish,
+        BigNumberish, boolean, Promise<string>] = [
+        BigNumber.from(1), BigNumber.from(1), "test", BigNumber.from(1),
+        BigNumber.from(1), "test", "test", "test",
+        BigNumber.from(1), BigNumber.from(1), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
+        ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", 1,
+        BigNumber.from(1), BigNumber.from(1), false, BigNumber.from(1),
+        BigNumber.from(1), true, signedOwner.getAddress()
+    ];
+
+    await gameOperation.createGame(_game)
+    let gameDetail = await gameDataOperation.getGame(1)
+    console.log("gameDetail ", gameDetail)
+    await gameOperation.startGame("test", 1, 10000000, {value: ethers.utils.parseEther("0.000000001")})
+    await gameOperation.gameRoundOver("test", 1, 0)
 
 };
 export default deployTest;
