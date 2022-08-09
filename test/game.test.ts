@@ -11,7 +11,7 @@ describe("initGame", () => {
 
     console.log("current deployer is ", deployer.address)
     console.log("current owner is ", owner.address)
-    let gameContract: Contract, gameLogicContract: Contract;
+    let gameContract: Contract, gameLogicContract: Contract, gameReaderContract: Contract;
     let gameDataContract: GameDataStorage, dataStorageContract;
 
     beforeEach(async () => {
@@ -52,6 +52,15 @@ describe("initGame", () => {
             owner,
         );
 
+        const gameReaderSolidity = await ethers.getContractFactory(
+            CONTRACT_NAMES.game_reader,
+            owner,
+        );
+
+        gameReaderContract = await gameReaderSolidity.deploy(
+            deployedGameStorage.address
+        )
+
         gameContract = await gameSolidity.deploy(
             owner.address,
             adminStorageContract.address,
@@ -62,6 +71,7 @@ describe("initGame", () => {
         await gameDataContract
         await gameContract
         await gameLogicContract
+        await gameReaderContract
 
 
         await gameDataContract.addOperator(gameContract.address);
@@ -76,29 +86,13 @@ describe("initGame", () => {
 
     describe("test game", () => {
 
-        // it("get operator", async () => {
-        //     const result = await gameContract.operator();
-        //     console.log("game operator", result)
-        // })
-        //
-        // it("get logic", async () => {
-        //     const result = await gameContract.gameLogic();
-        //     console.log("game logic", result)
-        // })
-        //
-        // it("check game logic operator", async () => {
-        //     const result = await gameDataContract.operators(gameContract.address);
-        //     console.log("game data operator is ", result)
-        //     expect(result).equal(true)
-        // })
-
         it("test game", async () => {
             let _game = [
                 1, BigNumber.from(1), "test", BigNumber.from(1),
                 BigNumber.from(1), "test", "test", "test",
                 BigNumber.from(50), BigNumber.from(50), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
                 "test", ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", ethers.utils.parseEther("1"),
-                BigNumber.from(1), BigNumber.from(1), false, BigNumber.from(1),
+                BigNumber.from(1), BigNumber.from(1660889699), false, BigNumber.from(1),
                 BigNumber.from(1), true, owner.address
             ];
             const result1 = await gameContract.connect(owner).createGame(_game);
@@ -143,20 +137,23 @@ describe("initGame", () => {
             }
 
 
+            let rounds = await gameReaderContract.getNotOverRound(1, 5);
+            console.log("not over rounds ", rounds)
+
             console.log("game over")
             let round4 = await gameDataContract.getGameLatestRoundNum(gameId);
             const result4 = await gameContract.connect(owner).gameRoundOver("test", gameId, round4);
             const txn4 = await result4.wait()
             expect(txn4.blockNumber).to.be.greaterThan(0)
 
-            let round5 = await gameDataContract.getGameLatestRoundNum(gameId);
+            // let round5 = await gameDataContract.getGameLatestRoundNum(gameId);
+            //
+            // console.log("get game round")
+            // const result5 = await gameDataContract.getGameRound(gameId, round5);
+            // console.log(result5)
 
-            console.log("get game round")
-            const result5 = await gameDataContract.getGameRound(gameId, round5);
-            console.log(result5)
-
-            const ids = await gameContract.getGroupGameIds(1)
-            console.log("ids", ids)
+            // const ids = await gameContract.getGroupGameIds(1)
+            // console.log("ids", ids)
 
 
         })

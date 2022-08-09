@@ -350,44 +350,6 @@ contract Game is Permission {
         }
     }
 
-    function getAvailableGameIds() public view returns (uint256[] memory){
-
-        return _getFilteredGameIds(true, 0);
-    }
-
-    function getGroupGameIds(int256 _groupId) public view returns (uint256[] memory){
-        return _getFilteredGameIds(false, _groupId);
-    }
-
-    function _getFilteredGameIds(bool _efficient, int256 _groupId) internal view returns (uint256[] memory){
-        uint256[] memory availableIds = new uint256[](availableSize);
-        uint256 size = 0;
-        for (uint i = 0; i < gameData.getGameIds().length; i++) {
-            if (size >= availableSize) {
-                break;
-            }
-            IGameData.GameDetail memory game = gameData.getGame(gameData.getGameIds()[i]);
-            if (_efficient) {
-                if (game.effectEndTime >= block.timestamp) {
-                    if (_groupId != 0) {
-                        if (game.groupId == _groupId) {
-                            availableIds[size] = game.id;
-                            size++;
-                        }
-                    } else {
-                        availableIds[size] = game.id;
-                        size++;
-                    }
-                }
-            } else {
-                if (_groupId != 0 && game.groupId == _groupId) {
-                    availableIds[size] = game.id;
-                    size++;
-                }
-            }
-        }
-        return availableIds;
-    }
 
 
     function checkGame(uint256 _gameId) private view {
@@ -494,7 +456,7 @@ contract Game is Permission {
         }
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
         uint256 ticketPoolAmount = gameData.getTicketsPool(_gameId, _round);
-        uint256 awardAmount = ticketPoolAmount.div(100).mul(game.awardProportion);
+        uint256 awardAmount = ticketPoolAmount.mul(game.awardProportion).div(100);
         uint256 remainingAmount = ticketPoolAmount.sub(awardAmount);
         uint256 singleAward = awardAmount.div(_winners.length);
 
