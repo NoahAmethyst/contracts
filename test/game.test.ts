@@ -95,8 +95,8 @@ describe("initGame", () => {
             let _game = [
                 1, BigNumber.from(1), "test", BigNumber.from(1),
                 BigNumber.from(1), "test", "test", "test",
-                BigNumber.from(50), BigNumber.from(1), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
-                "test", ["test", "test"], true, "0x8464135c8F25Da09e49BC8782676a84730C318bC", BigNumber.from(1000000),
+                BigNumber.from(50), BigNumber.from(50), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
+                "test", ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", ethers.utils.parseEther("1"),
                 BigNumber.from(1), BigNumber.from(1), false, BigNumber.from(1),
                 BigNumber.from(1), true, owner.address
             ];
@@ -113,6 +113,13 @@ describe("initGame", () => {
                 {value: ethers.utils.parseEther("0.0000001")});
             const txn2 = await result2.wait()
             expect(txn2.blockNumber).to.be.greaterThan(0)
+
+
+            console.log("mint token")
+            for (let i = 0; i < 10; i++) {
+                await tokenContract.connect(owner).mint(solvers[i].address, ethers.utils.parseEther("1"))
+                await tokenContract.connect(solvers[i]).approve(gameContract.address, ethers.utils.parseEther("1"));
+            }
 
             console.log("buy tickets")
 
@@ -137,6 +144,9 @@ describe("initGame", () => {
             console.log("get game round")
             const result5 = await gameDataContract.getGameRound(gameId, round5);
             console.log(result5)
+
+            let balance = await tokenContract.balanceOf(result5.winners[0])
+            console.log(balance)
 
         })
 
