@@ -91,12 +91,12 @@ describe("initGame", () => {
         //     expect(result).equal(true)
         // })
 
-        it("create game", async () => {
+        it("test game", async () => {
             let _game = [
                 1, BigNumber.from(1), "test", BigNumber.from(1),
                 BigNumber.from(1), "test", "test", "test",
                 BigNumber.from(50), BigNumber.from(1), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
-                ["test", "test"], true, "0x8464135c8F25Da09e49BC8782676a84730C318bC", BigNumber.from(1000000),
+                "test", ["test", "test"], true, "0x8464135c8F25Da09e49BC8782676a84730C318bC", BigNumber.from(1000000),
                 BigNumber.from(1), BigNumber.from(1), false, BigNumber.from(1),
                 BigNumber.from(1), true, owner.address
             ];
@@ -118,9 +118,8 @@ describe("initGame", () => {
 
             let round3 = await gameDataContract.getGameLatestRoundNum(gameId);
 
-
-            for (let i = 0; i < 20; i++) {
-                const result3 = await gameContract.connect(solvers[i]).buyEthTicket(gameId, round3,
+            for (let i = 0; i < 10; i++) {
+                const result3 = await gameContract.connect(solvers[i]).buyTicket(gameId, round3,
                     {value: ethers.utils.parseEther("1")});
                 const txn3 = await result3.wait()
                 expect(txn3.blockNumber).to.be.greaterThan(0)

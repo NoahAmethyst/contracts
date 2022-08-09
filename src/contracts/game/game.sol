@@ -168,6 +168,7 @@ interface IGameData {
         uint256 awardProportion;
         uint256 winNum;
         uint256[] buffIds;
+        string buffDesc;
         string[] events;
         //ticket
         bool ticketIsEth;
@@ -304,6 +305,8 @@ contract Game is Permission {
     mapping(IERC20 => bool) public erc20Exist;
     mapping(uint256 => mapping(uint256 => uint256))private newPlayerIndex;
 
+    uint256 public availableSize = 100;
+
     constructor(address payable _operator, IAdminData _adminData, IGameData _gameData, IGameLogic _gameLogic, IQuizToken _buffToken, uint256 _buffValue) {
         owner = msg.sender;
         operator = _operator;
@@ -312,6 +315,10 @@ contract Game is Permission {
         gameLogic = _gameLogic;
         buffToken = _buffToken;
         buffValue = _buffValue;
+    }
+
+    function setAvailableSize(uint256 _newSize) public onlyOwner {
+        availableSize = _newSize;
     }
 
 
@@ -342,6 +349,23 @@ contract Game is Permission {
             }
         }
     }
+
+    function getAvailableGameIds() public view returns (uint256[] memory){
+        uint256[] memory availableIds = new uint256[](availableSize);
+        uint256 size = 0;
+        for (uint i = 0; i < gameData.getGameIds().length; i++) {
+            if (size >= 100) {
+                break;
+            }
+            IGameData.GameDetail memory game = gameData.getGame(gameData.getGameIds()[i]);
+            if (game.effectEndTime >= block.timestamp) {
+                size++;
+                availableIds[size] = game.id;
+            }
+        }
+        return availableIds;
+    }
+
 
 
     function checkGame(uint256 _gameId) private view {
@@ -380,40 +404,29 @@ contract Game is Permission {
         gameData.setGame(_game.appId, game);
     }
 
-    function buyErc20Ticket(uint256 _gameId, uint256 _round) public {
+    function buyTicket(uint256 _gameId, uint256 _round) public payable {
         checkGameRound(_gameId, _round);
         gameRoundNotOver(_gameId, _round);
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
-        require(!game.ticketIsEth, "Not erc20");
         (bool hasPlayer,) = _checkIsJoin(_gameId, _round, msg.sender);
         require(!hasPlayer, "Has tickets");
-        game.ticketsToken.transferFrom(msg.sender, address(this), game.ticketAmount);
+        if (game.ticketIsEth) {
+            require(msg.value >= game.ticketAmount, "Insufficient");
+        } else {
+            game.ticketsToken.transferFrom(msg.sender, address(this), game.ticketAmount);
+        }
         gameData.addPlayer(_gameId, _round, msg.sender);
         gameLogic.eliminatePlayer(_gameId, _round, int256(newPlayerIndex[_gameId][_round]));
         newPlayerIndex[_gameId][_round] += 1;
     }
 
-
-    function buyEthTicket(uint256 _gameId, uint256 _round) public payable {
-        checkGameRound(_gameId, _round);
-        gameRoundNotOver(_gameId, _round);
-        IGameData.GameDetail memory game = gameData.getGame(_gameId);
-        require(game.ticketIsEth, "Not eth");
-        (bool hasPlayer,) = _checkIsJoin(_gameId, _round, msg.sender);
-        require(!hasPlayer, "Has tickets");
-        require(msg.value >= game.ticketAmount, "Insufficient");
-        gameData.addPlayer(_gameId, _round, msg.sender);
-        gameLogic.eliminatePlayer(_gameId, _round, int256(newPlayerIndex[_gameId][_round]));
-        newPlayerIndex[_gameId][_round] += 1;
-    }
 
     function buyBuff(uint256 _gameId, uint256 _round, uint256 _buffId) public {
         gameRoundNotOver(_gameId, _round);
         checkGameRound(_gameId, _round);
-        _checkBuffExist(_buffId);
+        require(_checkBuffExist(_gameId, _buffId), "not buff");
         (bool hasPlayer, uint256 index) = _checkIsJoin(_gameId, _round, msg.sender);
         require(hasPlayer, "Not in round");
-
         require(!_checkHasBuff(_gameId, _round, index), "Has buff");
         buffToken.burn(msg.sender, buffValue);
         gameData.addBuffPlayers(_gameId, _round, index);
@@ -494,17 +507,17 @@ contract Game is Permission {
         return (hasPlayer, index);
     }
 
-    function _checkBuffExist(uint256 _buffId) internal pure {
-        //        uint256[] memory buffIds = gameData.getGame(_gameId).buffIds;
-        //        bool buffExist = false;
-        //        for (uint i = 0; i < buffIds.length; i++) {
-        //            if (buffIds[i] == _buffId) {
-        //                buffExist = true;
-        //                break;
-        //            }
-        //        }
-        //        return buffExist;
-        require(_buffId != 0, "Not buff");
+    function _checkBuffExist(uint256 _gameId, uint256 _buffId) internal view returns (bool){
+        uint256[] memory buffIds = gameData.getGame(_gameId).buffIds;
+        bool buffExist = false;
+        for (uint i = 0; i < buffIds.length; i++) {
+            if (buffIds[i] == _buffId) {
+                buffExist = true;
+                break;
+            }
+        }
+        return buffExist;
+
     }
 
     function _checkHasBuff(uint256 _gameId, uint256 _round, uint256 _index) internal view returns (bool){
@@ -517,20 +530,5 @@ contract Game is Permission {
         }
         return hasBuff;
     }
-
-    function _checkHasIndex(uint256 _index, int256[] memory _list) internal pure returns (bool){
-        bool hasIndex = false;
-        for (uint i = 0; i < _list.length; i++) {
-            if (_list[i] == int256(_index)) {
-                hasIndex = true;
-            }
-        }
-        return hasIndex;
-    }
-
-    function _randomNumber(uint256 _scope, uint256 _salt) internal view returns (uint256) {
-        return uint256(keccak256(abi.encode(abi.encodePacked(block.timestamp, block.difficulty), _salt))) % _scope;
-    }
-
 
 }

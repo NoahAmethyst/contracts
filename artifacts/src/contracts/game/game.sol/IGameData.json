@@ -240,6 +240,11 @@
               "type": "uint256[]"
             },
             {
+              "internalType": "string",
+              "name": "buffDesc",
+              "type": "string"
+            },
+            {
               "internalType": "string[]",
               "name": "events",
               "type": "string[]"
@@ -584,6 +589,11 @@
               "type": "uint256[]"
             },
             {
+              "internalType": "string",
+              "name": "buffDesc",
+              "type": "string"
+            },
+            {
               "internalType": "string[]",
               "name": "events",
               "type": "string[]"
@@ -809,6 +819,11 @@
               "internalType": "uint256[]",
               "name": "buffIds",
               "type": "uint256[]"
+            },
+            {
+              "internalType": "string",
+              "name": "buffDesc",
+              "type": "string"
             },
             {
               "internalType": "string[]",

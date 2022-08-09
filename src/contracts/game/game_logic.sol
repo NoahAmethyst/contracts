@@ -159,6 +159,7 @@ interface IGameData {
         uint256 awardProportion;
         uint256 winNum;
         uint256[] buffIds;
+        string buffDesc;
         string[] events;
         //ticket
         bool ticketIsEth;
@@ -319,12 +320,12 @@ contract GameLogic is Permission {
 
     function eliminatePlayer(uint256 _gameId, uint256 _round, int256 _index) public onlyOperator {
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
-        if (_randomNumber(100, game.eliminateProportion) > game.eliminateProportion) {
+        if (_randomNumber(100, game.eliminateProportion) > game.eliminateProportion || remainPlayers[_gameId][_round].length < game.winNum) {
             remainPlayers[_gameId][_round].push(_index);
             return;
         }
         eliminatePlayerIndexes[_gameId][_round].push(_index);
-        eventsIndexes[_gameId][_round].push(int256(_randomNumber(game.events.length, 1)));
+        eventsIndexes[_gameId][_round].push(int256(_randomNumber(game.events.length, game.events.length)));
     }
 
 
@@ -336,21 +337,23 @@ contract GameLogic is Permission {
 
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
         address[] memory players = gameData.getPlayers(_gameId, _round);
-        if (remainPlayers[_gameId][_round].length < game.winNum) {
+
+        if (players.length <= game.winNum) {
+            winners[_gameId][_round] = players;
+        } else {
+            while (remainPlayers[_gameId][_round].length > game.winNum) {
+                uint256 eliminateNum = remainPlayers[_gameId][_round].length.mul(game.eliminateProportion).div(100);
+                if (eliminateNum == 0) {
+                    eliminateNum = 1;
+                }
+                for (uint i = 0; i < eliminateNum; i++) {
+                    uint256 eliminateIndex = _randomNumber(remainPlayers[_gameId][_round].length, eliminateNum);
+                    _calculateEliminate(_gameId, _round, eliminateIndex, game.events.length);
+                }
+            }
             _calculateWinner(_gameId, _round, players);
-            return (eliminatePlayerIndexes[_gameId][_round], buffUsersIndexes[_gameId][_round], eventsIndexes[_gameId][_round], winners[_gameId][_round]);
         }
-        while (remainPlayers[_gameId][_round].length > game.winNum) {
-            uint256 eliminateNum = remainPlayers[_gameId][_round].length.mul(game.eliminateProportion).div(100);
-            if (eliminateNum == 0) {
-                eliminateNum = 1;
-            }
-            for (uint i = 0; i < eliminateNum; i++) {
-                uint256 eliminateIndex = _randomNumber(remainPlayers[_gameId][_round].length, eliminateNum);
-                _calculateEliminate(_gameId, _round, eliminateIndex, game.events.length);
-            }
-        }
-        _calculateWinner(_gameId, _round, players);
+
         return (eliminatePlayerIndexes[_gameId][_round], buffUsersIndexes[_gameId][_round], eventsIndexes[_gameId][_round], winners[_gameId][_round]);
     }
 
@@ -360,9 +363,10 @@ contract GameLogic is Permission {
         (bool hasIndex,) = _checkHasIndex(playerIndex, buffUsersIndexes[_gameId][_round]);
         if (_checkHasBuff(_gameId, _round, playerIndex) && !hasIndex) {
             buffUsersIndexes[_gameId][_round].push(int256(playerIndex));
+            eliminatePlayerIndexes[_gameId][_round].push(- 1);
         } else {
             eliminatePlayerIndexes[_gameId][_round].push(int256(playerIndex));
-            eventsIndexes[_gameId][_round].push(int256(_randomNumber(_eventLength, 1)));
+            eventsIndexes[_gameId][_round].push(int256(_randomNumber(_eventLength, _eventLength)));
 
             (remainPlayers[_gameId][_round][_eliminateIndex], remainPlayers[_gameId][_round][remainPlayers[_gameId][_round].length - 1]) =
             (remainPlayers[_gameId][_round][remainPlayers[_gameId][_round].length - 1], remainPlayers[_gameId][_round][_eliminateIndex]);

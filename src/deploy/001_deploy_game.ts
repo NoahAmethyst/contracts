@@ -86,35 +86,23 @@ const deployTest: DeployFunction = async function (
 
 
     const signedOwner = await getNamedSigner(hre, "owner");
-    const dataOperator = await adminDataContract.connect(signedOwner)
-    await dataOperator.addAdmin("test", signedOwner.address)
+
     const gameDataOperation = await gameDataContract.connect(signedOwner)
+
     await gameDataOperation.addOperator(deployed_game_contract.address)
     console.log("add game data operator ", deployed_game_contract.address)
+    let success = await gameDataOperation.operators(deployed_game_contract.address)
+    console.log("add game data operator success is ", success)
+
     const gameLogicOperation = await gameLogicContract.connect(signedOwner)
     await gameLogicOperation.addOperator(deployed_game_contract.address)
-    console.log("add game data operator ", deployed_game_contract.address)
 
-    // let round = await gameDataContract.getGameRound(1, 1)
-    // console.log("round ", round)
-    //
-    // const gameOperation = await gameContract.connect(signedOwner)
-    //
-    //
-    // let _game = [
-    //     BigNumber.from(1), BigNumber.from(1), "test", BigNumber.from(1),
-    //     BigNumber.from(1), "test", "test", "test",
-    //     BigNumber.from(1), BigNumber.from(1), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
-    //     ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", 1,
-    //     BigNumber.from(1), BigNumber.from(1), false, BigNumber.from(1),
-    //     BigNumber.from(1), true, signedOwner.getAddress()
-    // ];
-    //
-    // await gameOperation.createGame(_game)
-    // let gameDetail = await gameDataOperation.getGame(1)
-    // console.log("gameDetail ", gameDetail)
-    // await gameOperation.startGame("test", 1, 10000000, {value: ethers.utils.parseEther("0.000000001")})
-    // await gameOperation.gameRoundOver("test", 1, 0)
+    console.log("add game logic operator ", deployed_game_contract.address)
+
+
+    success = await gameLogicOperation.operators(deployed_game_contract.address)
+    console.log("add game logic operator success is ", success)
+
 
 };
 export default deployTest;

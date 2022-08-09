@@ -197,6 +197,7 @@ contract GameDataStorage is Permission {
         uint256 awardProportion;
         uint256 winNum;
         uint256[] buffIds;
+        string buffDesc;
         string[] events;
         //ticket
         bool ticketIsEth;
@@ -221,14 +222,6 @@ contract GameDataStorage is Permission {
     mapping(uint256 => mapping(uint256 => uint256)) private ticketsPoll;
 
     uint256[] private gameIds;
-
-
-    uint256 public availableSize = 100;
-
-    function setAvailableSize(uint256 _newSize) public onlyOwner {
-        availableSize = _newSize;
-    }
-
 
     function setGame(string memory _appId, GameDetail memory _game) public onlyOperator {
         if (!games[_game.id].exist) {
@@ -257,24 +250,6 @@ contract GameDataStorage is Permission {
 
     function getGameIds() public view returns (uint256[] memory){
         return gameIds;
-    }
-
-
-    function getAvailiableGameIds() public view returns (uint256[] memory){
-        uint256[] memory availableIds = new uint256[](availableSize);
-        uint256 size = 0;
-        for (uint i = 0; i < gameIds.length; i++) {
-            if (size >= 100) {
-                break;
-            }
-            GameDetail memory game = games[gameIds[i]];
-            if (game.effectEndTime >= block.timestamp) {
-                size++;
-                availableIds[size] = gameIds[i];
-            }
-        }
-
-        return availableIds;
     }
 
     function getPlayers(uint256 _gameId, uint256 _ground) public view returns (address[] memory){
@@ -401,5 +376,10 @@ contract GameDataStorage is Permission {
 
     function getGameRoundList(uint256 _gameId) public view returns (GameRound[] memory){
         return gameRoundList[_gameId];
+    }
+
+
+    function getGameAndRound(uint256 _gameId) public view returns (GameDetail memory detail, GameRound[] memory gameRounds){
+        return (games[_gameId], gameRoundList[_gameId]);
     }
 }
