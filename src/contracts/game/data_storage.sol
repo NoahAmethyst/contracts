@@ -195,7 +195,7 @@ contract GameDataStorage is Permission {
         // v/100
         uint256 eliminateProportion;
         uint256 awardProportion;
-        uint256 winNum;
+        uint256 winnerNum;
         uint256[] buffIds;
         string buffDesc;
         string[] events;

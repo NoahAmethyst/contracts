@@ -157,7 +157,7 @@ interface IGameData {
         // v/100
         uint256 eliminateProportion;
         uint256 awardProportion;
-        uint256 winNum;
+        uint256 winnerNum;
         uint256[] buffIds;
         string buffDesc;
         string[] events;
@@ -320,7 +320,7 @@ contract GameLogic is Permission {
 
     function eliminatePlayer(uint256 _gameId, uint256 _round, int256 _index) public onlyOperator {
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
-        if (_randomNumber(100, game.eliminateProportion) > game.eliminateProportion || remainPlayers[_gameId][_round].length < game.winNum) {
+        if (_randomNumber(100, game.eliminateProportion) > game.eliminateProportion || remainPlayers[_gameId][_round].length < game.winnerNum) {
             remainPlayers[_gameId][_round].push(_index);
             return;
         }
@@ -338,10 +338,10 @@ contract GameLogic is Permission {
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
         address[] memory players = gameData.getPlayers(_gameId, _round);
 
-        if (players.length <= game.winNum) {
+        if (players.length <= game.winnerNum) {
             winners[_gameId][_round] = players;
         } else {
-            while (remainPlayers[_gameId][_round].length > game.winNum) {
+            while (remainPlayers[_gameId][_round].length > game.winnerNum) {
                 uint256 eliminateNum = remainPlayers[_gameId][_round].length.mul(game.eliminateProportion).div(100);
                 if (eliminateNum == 0) {
                     eliminateNum = 1;

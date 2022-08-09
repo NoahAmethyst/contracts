@@ -231,7 +231,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "winNum",
+              "name": "winnerNum",
               "type": "uint256"
             },
             {
@@ -580,7 +580,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "winNum",
+              "name": "winnerNum",
               "type": "uint256"
             },
             {
@@ -812,7 +812,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "winNum",
+              "name": "winnerNum",
               "type": "uint256"
             },
             {

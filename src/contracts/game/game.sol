@@ -166,7 +166,7 @@ interface IGameData {
         // v/100
         uint256 eliminateProportion;
         uint256 awardProportion;
-        uint256 winNum;
+        uint256 winnerNum;
         uint256[] buffIds;
         string buffDesc;
         string[] events;
@@ -305,7 +305,7 @@ contract Game is Permission {
     mapping(IERC20 => bool) public erc20Exist;
     mapping(uint256 => mapping(uint256 => uint256))private newPlayerIndex;
 
-    uint256 public availableSize = 100;
+    uint256 public availableSize = 20;
 
     constructor(address payable _operator, IAdminData _adminData, IGameData _gameData, IGameLogic _gameLogic, IQuizToken _buffToken, uint256 _buffValue) {
         owner = msg.sender;
@@ -351,32 +351,39 @@ contract Game is Permission {
     }
 
     function getAvailableGameIds() public view returns (uint256[] memory){
-        uint256[] memory availableIds = new uint256[](availableSize);
-        uint256 size = 0;
-        for (uint i = 0; i < gameData.getGameIds().length; i++) {
-            if (size >= 100) {
-                break;
-            }
-            IGameData.GameDetail memory game = gameData.getGame(gameData.getGameIds()[i]);
-            if (game.effectEndTime >= block.timestamp) {
-                size++;
-                availableIds[size] = game.id;
-            }
-        }
-        return availableIds;
+
+        return _getFilteredGameIds(true, 0);
     }
 
     function getGroupGameIds(int256 _groupId) public view returns (uint256[] memory){
+        return _getFilteredGameIds(false, _groupId);
+    }
+
+    function _getFilteredGameIds(bool _efficient, int256 _groupId) internal view returns (uint256[] memory){
         uint256[] memory availableIds = new uint256[](availableSize);
         uint256 size = 0;
         for (uint i = 0; i < gameData.getGameIds().length; i++) {
-            if (size >= 100) {
+            if (size >= availableSize) {
                 break;
             }
             IGameData.GameDetail memory game = gameData.getGame(gameData.getGameIds()[i]);
-            if (game.effectEndTime >= block.timestamp && game.groupId == _groupId) {
-                size++;
-                availableIds[size] = game.id;
+            if (_efficient) {
+                if (game.effectEndTime >= block.timestamp) {
+                    if (_groupId != 0) {
+                        if (game.groupId == _groupId) {
+                            availableIds[size] = game.id;
+                            size++;
+                        }
+                    } else {
+                        availableIds[size] = game.id;
+                        size++;
+                    }
+                }
+            } else {
+                if (_groupId != 0 && game.groupId == _groupId) {
+                    availableIds[size] = game.id;
+                    size++;
+                }
             }
         }
         return availableIds;

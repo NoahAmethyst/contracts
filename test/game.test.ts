@@ -155,8 +155,8 @@ describe("initGame", () => {
             const result5 = await gameDataContract.getGameRound(gameId, round5);
             console.log(result5)
 
-            let balance = await tokenContract.balanceOf(result5.winners[0])
-            console.log(balance)
+            const ids = await gameContract.getGroupGameIds(1)
+            console.log("ids", ids)
 
 
         })
