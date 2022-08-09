@@ -303,13 +303,13 @@ contract GameLogic is Permission {
     }
 
 
-    function triggerBuff(uint256 _gameId, uint256 _round, int256 _index) public onlyOperator {
-        buffUsersIndexes[_gameId][_round].push(_index);
-        (bool hasIndex,uint256 index) = _checkHasIndex(uint256(_index), eliminatePlayerIndexes[_gameId][_round]);
+    function triggerBuff(uint256 _gameId, uint256 _round, uint256 _index) public onlyOperator {
+        (bool hasIndex,uint256 index) = _checkHasIndex(_index, eliminatePlayerIndexes[_gameId][_round]);
         if (hasIndex) {
+            buffUsersIndexes[_gameId][_round].push(int256(_index));
             eliminatePlayerIndexes[_gameId][_round][index] = - 1;
             eventsIndexes[_gameId][_round][index] = - 1;
-            remainPlayers[_gameId][_round].push(_index);
+            remainPlayers[_gameId][_round].push(int256(_index));
         }
     }
 
@@ -364,6 +364,7 @@ contract GameLogic is Permission {
         if (_checkHasBuff(_gameId, _round, playerIndex) && !hasIndex) {
             buffUsersIndexes[_gameId][_round].push(int256(playerIndex));
             eliminatePlayerIndexes[_gameId][_round].push(- 1);
+            eventsIndexes[_gameId][_round].push(- 1);
         } else {
             eliminatePlayerIndexes[_gameId][_round].push(int256(playerIndex));
             eventsIndexes[_gameId][_round].push(int256(_randomNumber(_eventLength, _eventLength)));

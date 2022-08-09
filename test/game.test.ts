@@ -66,6 +66,7 @@ describe("initGame", () => {
 
         await gameDataContract.addOperator(gameContract.address);
         await gameLogicContract.addOperator(gameContract.address)
+        await tokenContract.connect(owner).addOperator(gameContract.address);
 
 
     });
@@ -117,9 +118,10 @@ describe("initGame", () => {
 
             console.log("mint token")
             for (let i = 0; i < 10; i++) {
-                await tokenContract.connect(owner).mint(solvers[i].address, ethers.utils.parseEther("1"))
+                await tokenContract.connect(owner).mint(solvers[i].address, ethers.utils.parseEther("2"))
                 await tokenContract.connect(solvers[i]).approve(gameContract.address, ethers.utils.parseEther("1"));
             }
+
 
             console.log("buy tickets")
 
@@ -128,6 +130,14 @@ describe("initGame", () => {
             for (let i = 0; i < 10; i++) {
                 const result3 = await gameContract.connect(solvers[i]).buyTicket(gameId, round3,
                     {value: ethers.utils.parseEther("1")});
+                const txn3 = await result3.wait()
+                expect(txn3.blockNumber).to.be.greaterThan(0)
+            }
+
+            console.log("buy buff")
+
+            for (let i = 0; i < 5; i++) {
+                const result3 = await gameContract.connect(solvers[i]).buyBuff(gameId, round3, BigNumber.from(1));
                 const txn3 = await result3.wait()
                 expect(txn3.blockNumber).to.be.greaterThan(0)
             }
@@ -147,6 +157,7 @@ describe("initGame", () => {
 
             let balance = await tokenContract.balanceOf(result5.winners[0])
             console.log(balance)
+
 
         })
 

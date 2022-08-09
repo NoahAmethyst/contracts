@@ -366,6 +366,21 @@ contract Game is Permission {
         return availableIds;
     }
 
+    function getGroupGameIds(int256 _groupId) public view returns (uint256[] memory){
+        uint256[] memory availableIds = new uint256[](availableSize);
+        uint256 size = 0;
+        for (uint i = 0; i < gameData.getGameIds().length; i++) {
+            if (size >= 100) {
+                break;
+            }
+            IGameData.GameDetail memory game = gameData.getGame(gameData.getGameIds()[i]);
+            if (game.effectEndTime >= block.timestamp && game.groupId == _groupId) {
+                size++;
+                availableIds[size] = game.id;
+            }
+        }
+        return availableIds;
+    }
 
 
     function checkGame(uint256 _gameId) private view {
