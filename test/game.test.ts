@@ -137,8 +137,8 @@ describe("initGame", () => {
             }
 
 
-            let rounds = await gameReaderContract.getNotOverRound(1, 5);
-            console.log("not over rounds ", rounds)
+            // let rounds = await gameReaderContract.getNotOverRound(1, 5);
+            // console.log("not over rounds ", rounds)
 
             console.log("game over")
             let round4 = await gameDataContract.getGameLatestRoundNum(gameId);
@@ -146,11 +146,11 @@ describe("initGame", () => {
             const txn4 = await result4.wait()
             expect(txn4.blockNumber).to.be.greaterThan(0)
 
-            // let round5 = await gameDataContract.getGameLatestRoundNum(gameId);
-            //
-            // console.log("get game round")
-            // const result5 = await gameDataContract.getGameRound(gameId, round5);
-            // console.log(result5)
+            let round5 = await gameDataContract.getGameLatestRoundNum(gameId);
+
+            console.log("get game round")
+            const result5 = await gameDataContract.getGameRound(gameId, round5);
+            console.log(result5)
 
             // const ids = await gameContract.getGroupGameIds(1)
             // console.log("ids", ids)
