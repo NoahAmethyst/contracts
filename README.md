@@ -1,6 +1,6 @@
 # CoW Protocol
 
-###This project is edit from https://github.com/cowprotocol/contracts###
+### This project is edit from https://github.com/cowprotocol/contracts ###
 
 This repository contains the Solidity smart contract code for the **CoW Protocol** (formerly know as **Gnosis Protocol**).
 
