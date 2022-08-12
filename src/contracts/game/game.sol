@@ -351,7 +351,6 @@ contract Game is Permission {
     }
 
 
-
     function checkGame(uint256 _gameId) private view {
         require(_gameId != 0, "Invalid id");
         require(gameData.getGame(_gameId).exist, "Not exist game");
@@ -514,5 +513,7 @@ contract Game is Permission {
         }
         return hasBuff;
     }
+
+
 
 }

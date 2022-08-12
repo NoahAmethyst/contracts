@@ -173,18 +173,29 @@ interface IDataStorage {
 
 }
 
+interface IIntegrateToken {
+    function mint(address account, uint256 amount) external;
+
+    function burn(address account, uint256 amount) external;
+}
+
 contract LotteryPool {
     using SafeMath for uint256;
     address public owner;
     mapping(address => bool) public operators;
     IDataStorage public dataStorage;
     IERC20[] private erc20List;
+    IIntegrateToken public excitationToken;
 
-    constructor(address _operator, IDataStorage _storage){
+    uint256 public exciteAmount;
+
+    constructor(address _operator, IDataStorage _storage, IIntegrateToken _excitationToken, uint256 _exciteAmount){
         owner = msg.sender;
         dataStorage = _storage;
         operators[msg.sender] = true;
         operators[_operator] = true;
+        excitationToken = _excitationToken;
+        exciteAmount = _exciteAmount;
     }
 
     function transferOwner(address _newOwner) public onlyOwner {
@@ -198,6 +209,14 @@ contract LotteryPool {
 
     function changeStorage(IDataStorage _newStorage) public onlyOwner {
         dataStorage = _newStorage;
+    }
+
+    function changeExcitationToken(IIntegrateToken _newToken) public onlyOwner {
+        excitationToken = _newToken;
+    }
+
+    function changeExciteAmount(uint256 _newAmount) public onlyOwner {
+        exciteAmount = _newAmount;
     }
 
     modifier onlyOwner(){
@@ -279,6 +298,8 @@ contract LotteryPool {
         dataStorage.setLottery(msg.sender, _lotteryId, lottery);
         uint256 lastBalance = dataStorage.getErc20Bank(msg.sender, _rewardToken);
         dataStorage.setErc20Bank(msg.sender, _rewardToken, lastBalance.add(_amount));
+        excitationToken.mint(msg.sender, exciteAmount);
+
     }
 
     function createEthLottery(string memory _appId, uint256 _lotteryId, uint256[] memory _fixedNum, uint256[] memory _proportionNum, uint256[] memory _amounts) public payable newLottery(_lotteryId)
@@ -301,6 +322,7 @@ contract LotteryPool {
         dataStorage.setLottery(msg.sender, _lotteryId, lottery);
         uint256 lastBalance = dataStorage.getEthBank(msg.sender);
         dataStorage.setEthBank(msg.sender, lastBalance.add(msg.value));
+        excitationToken.mint(msg.sender, exciteAmount);
     }
 
 
@@ -415,4 +437,6 @@ contract LotteryPool {
             }
         }
     }
+
+
 }

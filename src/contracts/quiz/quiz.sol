@@ -72,8 +72,10 @@ interface ILottery {
     function transferAsset(address payable _to) external;
 }
 
-interface IQuizToken {
+interface IIntegrateToken {
     function mint(address account, uint256 amount) external;
+
+    function burn(address account, uint256 amount) external;
 }
 
 interface IDataStorage {
@@ -124,17 +126,20 @@ contract Quiz {
     address payable public operator;
     mapping(string => address payable) appOperators;
     ILottery public lottery;
-    IQuizToken public quizToken;
+    IIntegrateToken public quizToken;
+    IIntegrateToken public excitationToken;
     IDataStorage public dataStorage;
 
 
     uint256 public correctRewardAmount;
+    uint256 public exciteAmount;
 
-    constructor(address payable _operator, ILottery _lottery, IQuizToken _quizToken, IDataStorage _storage, uint256 _rewardAmount) {
+    constructor(address payable _operator, ILottery _lottery, IIntegrateToken _quizToken, IIntegrateToken _excitationToken, IDataStorage _storage, uint256 _rewardAmount) {
         owner = msg.sender;
         operator = _operator;
         lottery = _lottery;
         quizToken = _quizToken;
+        excitationToken = _excitationToken;
         dataStorage = _storage;
         correctRewardAmount = _rewardAmount;
     }
@@ -182,12 +187,20 @@ contract Quiz {
         lottery = _newLottery;
     }
 
-    function changeQuizToken(IQuizToken _newQuizToken) public onlyOwner {
-        quizToken = _newQuizToken;
+    function changeQuizToken(IIntegrateToken _newToken) public onlyOwner {
+        quizToken = _newToken;
+    }
+
+    function changeExcitationToken(IIntegrateToken _newToken) public onlyOwner {
+        excitationToken = _newToken;
     }
 
     function changeRewardAmount(uint256 _newAmount) public onlyOwner {
         correctRewardAmount = _newAmount;
+    }
+
+    function changeExciteAmount(uint256 _newAmount) public onlyOwner {
+        exciteAmount = _newAmount;
     }
 
     function createQuiz(string memory _appId, uint256 _quizId, int256 _groupId, uint _botType, string[] memory _questions,
@@ -222,6 +235,9 @@ contract Quiz {
         quiz.activeTime = _activeTime;
 
         dataStorage.setQuiz(_appId, quiz);
+
+        excitationToken.mint(msg.sender, exciteAmount);
+
 
         emit CreateQuiz(_appId, _quizId, _groupId, _botType, _questions, _rewardAmount, _startTime, _activeTime);
     }
@@ -303,4 +319,6 @@ contract Quiz {
     function getLotteryResults(uint256 _quizId, uint256 _index) public view returns (address[] memory){
         return dataStorage.getLotteryResult(_quizId, _index);
     }
+
+
 }

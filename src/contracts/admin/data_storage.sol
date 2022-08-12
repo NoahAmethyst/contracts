@@ -288,19 +288,19 @@ contract DataStorage {
     }
 
     function _popAwardQuiz(uint256 _quizId) internal {
-        uint256 lastShouldAwardQuizIdIndex = shouldAwardQuizIds.length - 1;
-        uint256 shouldAwardQuizIdIndex = 0;
-        for (uint256 i = 0; i < lastShouldAwardQuizIdIndex; i ++) {
+        bool hasQuizId = false;
+        uint256 index = 0;
+        for (uint i = 0; i < shouldAwardQuizIds.length; i++) {
             if (shouldAwardQuizIds[i] == _quizId) {
-                shouldAwardQuizIdIndex = i;
+                hasQuizId = true;
+                index = i;
+                break;
             }
         }
-
-        // When the question to delete is the last question, the swap operation is unnecessary
-        if (lastShouldAwardQuizIdIndex != shouldAwardQuizIdIndex) {
-            shouldAwardQuizIds[shouldAwardQuizIdIndex] = shouldAwardQuizIds[lastShouldAwardQuizIdIndex];
+        if (hasQuizId) {
+            (shouldAwardQuizIds[index], shouldAwardQuizIds[shouldAwardQuizIds.length - 1] = shouldAwardQuizIds[shouldAwardQuizIds.length - 1, shouldAwardQuizIds[index]);
+            shouldAwardQuizIds.pop();
         }
-        shouldAwardQuizIds.pop();
     }
 
 
