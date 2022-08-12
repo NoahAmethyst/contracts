@@ -1,6 +1,6 @@
 import { BigNumber } from "ethers";
 
-import { BUY_ETH_ADDRESS, OrderKind } from "../../ts";
+import { OrderKind } from "../../ts";
 import { Api } from "../../ts/api";
 import { SupportedNetwork } from "../ts/deployment";
 import {
@@ -74,15 +74,12 @@ export async function ethValue(
   network: SupportedNetwork,
   api: Api,
 ): Promise<BigNumber> {
-  if (
-    isNativeToken(token) ||
-    token.address == WRAPPED_NATIVE_TOKEN_ADDRESS[network] // todo: remove when services support selling weth for eth
-  ) {
+  if (isNativeToken(token)) {
     return amount;
   }
   return await api.estimateTradeAmount({
     sellToken: token.address,
-    buyToken: BUY_ETH_ADDRESS,
+    buyToken: WRAPPED_NATIVE_TOKEN_ADDRESS[network], // todo: replace WETH address with BUY_ETH_ADDRESS when services support ETH estimates
     amount,
     kind: OrderKind.SELL,
   });

@@ -5,50 +5,35 @@ import "solidity-coverage";
 import "@tenderly/hardhat-tenderly";
 
 import dotenv from "dotenv";
-import type { HttpNetworkUserConfig } from "hardhat/types";
-import type { MochaOptions } from "mocha";
+import type {HttpNetworkUserConfig} from "hardhat/types";
+import type {MochaOptions} from "mocha";
 import yargs from "yargs";
+import {setupTasks} from "./src/tasks/testTask";
 
-import { setupTasks } from "./src/tasks";
 
 const argv = yargs
-  .option("network", {
-    type: "string",
-    default: "hardhat",
-  })
-  .help(false)
-  .version(false)
-  .parseSync();
+    .option("network", {
+      type: "string",
+      default: "hardhat",
+    })
+    .help(false)
+    .version(false)
+    .parseSync();
 
 // Load environment variables.
 dotenv.config();
-const { INFURA_KEY, MNEMONIC, PK, REPORT_GAS, MOCHA_CONF, NODE_URL } =
-  process.env;
+const {INFURA_KEY, MNEMONIC, ADDRESS,PK, REPORT_GAS, MOCHA_CONF, NODE_URL} =
+    process.env;
 
-const DEFAULT_MNEMONIC =
-  "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
+
+//or use your private key & address
+const privateKey = PK
+const owner = ADDRESS
 
 const sharedNetworkConfig: HttpNetworkUserConfig = {};
-if (PK) {
-  sharedNetworkConfig.accounts = [PK];
-} else {
-  sharedNetworkConfig.accounts = {
-    mnemonic: MNEMONIC || DEFAULT_MNEMONIC,
-  };
-}
 
-if (
-  ["rinkeby", "goerli", "mainnet"].includes(argv.network) &&
-  NODE_URL === undefined &&
-  INFURA_KEY === undefined
-) {
-  throw new Error(
-    `Could not find Infura key in env, unable to connect to network ${argv.network}`,
-  );
-}
-
-if (NODE_URL !== undefined) {
-  sharedNetworkConfig.url = NODE_URL;
+if (PK || privateKey) {
+  sharedNetworkConfig.accounts = [PK ?? privateKey];
 }
 
 const mocha: MochaOptions = {};
@@ -79,7 +64,7 @@ setupTasks();
 export default {
   mocha,
   paths: {
-    artifacts: "build/artifacts",
+    // artifacts: "build/artifacts",
     cache: "build/cache",
     deploy: "src/deploy",
     sources: "src/contracts",
@@ -87,10 +72,10 @@ export default {
   solidity: {
     compilers: [
       {
-        version: "0.7.6",
+        version: "0.8.9",
         settings: {
           optimizer: {
-            enabled: true,
+            enabled: false,
             runs: 1000000,
           },
         },
@@ -106,25 +91,10 @@ export default {
       blockGasLimit: 12.5e6,
       initialBaseFeePerGas,
     },
-    mainnet: {
-      url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
+    polygon: {
+      url: `https://polygon-rpc.com`,
       ...sharedNetworkConfig,
-      chainId: 1,
-    },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
-      ...sharedNetworkConfig,
-      chainId: 4,
-    },
-    goerli: {
-      url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
-      ...sharedNetworkConfig,
-      chainId: 5,
-    },
-    xdai: {
-      url: "https://rpc.gnosischain.com",
-      ...sharedNetworkConfig,
-      chainId: 100,
+      chainId: 137,
     },
   },
   namedAccounts: {
@@ -134,12 +104,17 @@ export default {
     owner: {
       // The contract deployment addresses depend on the owner address.
       // To have the same addresses on all networks, the owner must be the same.
-      default: "0x6Fb5916c0f57f88004d5b5EB25f6f4D77353a1eD",
+      default: owner,
       hardhat: 1,
       localhost: 1,
     },
     manager: {
-      default: "0x6Fb5916c0f57f88004d5b5EB25f6f4D77353a1eD",
+      default: owner,
+      hardhat: 2,
+      localhost: 2,
+    },
+    operator:{
+      default: owner,
       hardhat: 2,
       localhost: 2,
     },

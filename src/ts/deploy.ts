@@ -1,4 +1,4 @@
-import { utils } from "ethers";
+import {utils} from "ethers";
 
 /**
  * The salt used when deterministically deploying smart contracts.
@@ -18,9 +18,15 @@ export const DEPLOYER_CONTRACT = "0x4e59b44847b379578588920ca78fbf26c0b4956c";
  * Dictionary containing all deployed contract names.
  */
 export const CONTRACT_NAMES = {
-  authenticator: "GPv2AllowListAuthentication",
-  settlement: "GPv2Settlement",
-  tradeSimulator: "GPv2TradeSimulator",
+    unlimittoken: "UnlimitedToken",
+    data_storage: "DataStorage",
+    lottery: "LotteryPool",
+    quiz: "Quiz",
+    game_data: "GameDataStorage",
+    game: "Game",
+    game_logic: "GameLogic",
+    game_reader: "GameReader",
+
 } as const;
 
 /**
@@ -32,13 +38,15 @@ export type ContractName = typeof CONTRACT_NAMES[keyof typeof CONTRACT_NAMES];
  * The deployment args for a contract.
  */
 export type DeploymentArguments<T> =
-  T extends typeof CONTRACT_NAMES.authenticator
-    ? never
-    : T extends typeof CONTRACT_NAMES.settlement
-    ? [string, string]
-    : T extends typeof CONTRACT_NAMES.tradeSimulator
-    ? []
-    : unknown[];
+    T extends typeof CONTRACT_NAMES.unlimittoken
+        ? [string, string]
+        : T extends typeof CONTRACT_NAMES.data_storage
+        ? never
+        : T extends typeof CONTRACT_NAMES.lottery
+            ? [string, string]
+            : T extends typeof CONTRACT_NAMES.quiz
+                ? [string, string, string, string, bigint]
+                : unknown[];
 
 /**
  * Allowed ABI definition types by Ethers.js.
@@ -49,8 +57,8 @@ export type Abi = ConstructorParameters<typeof utils.Interface>[0];
  * Artifact information important for computing deterministic deployments.
  */
 export interface ArtifactDeployment {
-  abi: Abi;
-  bytecode: string;
+    abi: Abi;
+    bytecode: string;
 }
 
 /**
@@ -58,13 +66,13 @@ export interface ArtifactDeployment {
  * deployed contracts.
  */
 export interface NamedArtifactDeployment<C extends ContractName>
-  extends ArtifactDeployment {
-  contractName: C;
+    extends ArtifactDeployment {
+    contractName: C;
 }
 
 type MaybeNamedArtifactArtifactDeployment<C> = C extends ContractName
-  ? NamedArtifactDeployment<C>
-  : ArtifactDeployment;
+    ? NamedArtifactDeployment<C>
+    : ArtifactDeployment;
 
 /**
  * Computes the deterministic address at which the contract will be deployed.
@@ -75,18 +83,18 @@ type MaybeNamedArtifactArtifactDeployment<C> = C extends ContractName
  * @returns The address that is expected to store the deployed code.
  */
 export function deterministicDeploymentAddress<C>(
-  { abi, bytecode }: MaybeNamedArtifactArtifactDeployment<C>,
-  deploymentArguments: DeploymentArguments<C>,
+    {abi, bytecode}: MaybeNamedArtifactArtifactDeployment<C>,
+    deploymentArguments: DeploymentArguments<C>,
 ): string {
-  const contractInterface = new utils.Interface(abi);
-  const deployData = utils.hexConcat([
-    bytecode,
-    contractInterface.encodeDeploy(deploymentArguments),
-  ]);
+    const contractInterface = new utils.Interface(abi);
+    const deployData = utils.hexConcat([
+        bytecode,
+        contractInterface.encodeDeploy(deploymentArguments),
+    ]);
 
-  return utils.getCreate2Address(
-    DEPLOYER_CONTRACT,
-    SALT,
-    utils.keccak256(deployData),
-  );
+    return utils.getCreate2Address(
+        DEPLOYER_CONTRACT,
+        SALT,
+        utils.keccak256(deployData),
+    );
 }
