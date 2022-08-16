@@ -84,7 +84,7 @@ interface IGameData {
         uint256 id;
         uint256 category;
         string appId;
-        int256 groupId;
+        int256[] groupIds;
         uint256 botType;
         string title;
         string introduction;
@@ -93,6 +93,8 @@ interface IGameData {
         // v/100
         uint256 eliminateProportion;
         uint256 awardProportion;
+        uint256 creatorProportion;
+        uint256 sponsorProportion;
         uint256 winnerNum;
         uint256[] buffIds;
         string buffDesc;
@@ -143,6 +145,7 @@ interface IGameData {
     //game result
     struct GameRound {
         uint256 gameId;
+        uint256 round;
         address[] winners;
         uint256 participate;
         address sponsor;
@@ -187,7 +190,7 @@ contract GameReader is Permission {
 
     uint256 public availableSize = 20;
 
-    constructor( IGameData _gameData) {
+    constructor(IGameData _gameData) {
         owner = msg.sender;
         gameData = _gameData;
     }
@@ -223,7 +226,7 @@ contract GameReader is Permission {
             if (_efficient) {
                 if (game.effectEndTime >= block.timestamp) {
                     if (_groupId != 0) {
-                        if (game.groupId == _groupId) {
+                        if (_checkInList(_groupId, game.groupIds)) {
                             availableIds[size] = game.id;
                             size++;
                         }
@@ -233,7 +236,7 @@ contract GameReader is Permission {
                     }
                 }
             } else {
-                if (_groupId != 0 && game.groupId == _groupId) {
+                if (_groupId != 0 && _checkInList(_groupId, game.groupIds)) {
                     availableIds[size] = game.id;
                     size++;
                 }
@@ -246,7 +249,7 @@ contract GameReader is Permission {
         IGameData.GameRound[] memory rounds = new IGameData.GameRound[](_size);
         uint256[] memory availableIds = _getFilteredGameIds(true, _groupId);
         uint256 size = 0;
-        for (uint i= 0; i < availableIds.length; i++) {
+        for (uint i = 0; i < availableIds.length; i++) {
             if (size >= _size) {
                 break;
             }
@@ -262,6 +265,17 @@ contract GameReader is Permission {
             }
         }
         return rounds;
+    }
+
+    function _checkInList(int256 _id, int256[] memory _list) internal pure returns (bool){
+        bool has = false;
+        for (uint i = 0; i < _list.length; i++) {
+            if (_list[i] == _id) {
+                has = true;
+                break;
+            }
+        }
+        return has;
     }
 
 

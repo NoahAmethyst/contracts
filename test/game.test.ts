@@ -88,10 +88,11 @@ describe("initGame", () => {
 
         it("test game", async () => {
             let _game = [
-                1, BigNumber.from(1), "test", BigNumber.from(1),
+                1, BigNumber.from(1), "test", [BigNumber.from(1)],
                 BigNumber.from(1), "test", "test", "test",
-                BigNumber.from(50), BigNumber.from(50), BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
-                "test", ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", ethers.utils.parseEther("1"),
+                BigNumber.from(50), BigNumber.from(50),BigNumber.from(20),BigNumber.from(30),
+                BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
+                "test", ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", ethers.utils.parseEther("0"),
                 BigNumber.from(1), BigNumber.from(1660889699), false, BigNumber.from(1),
                 BigNumber.from(1), true, owner.address
             ];
@@ -123,7 +124,8 @@ describe("initGame", () => {
 
             for (let i = 0; i < 10; i++) {
                 const result3 = await gameContract.connect(solvers[i]).buyTicket(gameId, round3,
-                    {value: ethers.utils.parseEther("1")});
+                    // {value: ethers.utils.parseEther("1")}
+                );
                 const txn3 = await result3.wait()
                 expect(txn3.blockNumber).to.be.greaterThan(0)
             }
@@ -152,8 +154,8 @@ describe("initGame", () => {
             const result5 = await gameDataContract.getGameRound(gameId, round5);
             console.log(result5)
 
-            // const ids = await gameContract.getGroupGameIds(1)
-            // console.log("ids", ids)
+            const ids = await gameReaderContract.getGroupGameIds(1)
+            console.log("ids", ids)
 
 
         })

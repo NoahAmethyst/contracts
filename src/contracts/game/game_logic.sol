@@ -148,7 +148,7 @@ interface IGameData {
         uint256 id;
         uint256 category;
         string appId;
-        int256 groupId;
+        int256[] groupIds;
         uint256 botType;
         string title;
         string introduction;
@@ -157,6 +157,8 @@ interface IGameData {
         // v/100
         uint256 eliminateProportion;
         uint256 awardProportion;
+        uint256 creatorProportion;
+        uint256 sponsorProportion;
         uint256 winnerNum;
         uint256[] buffIds;
         string buffDesc;
@@ -207,6 +209,7 @@ interface IGameData {
     //game result
     struct GameRound {
         uint256 gameId;
+        uint256 round;
         address[] winners;
         uint256 participate;
         address sponsor;
@@ -411,8 +414,6 @@ contract GameLogic is Permission {
     function _randomNumber(uint256 _scope, uint256 _salt) internal view returns (uint256) {
         return uint256(keccak256(abi.encode(abi.encodePacked(block.timestamp, block.difficulty), _salt))) % _scope;
     }
-
-
 
 
 }

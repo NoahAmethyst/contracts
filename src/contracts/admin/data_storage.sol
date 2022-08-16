@@ -258,7 +258,7 @@ contract DataStorage {
         _popAwardQuiz(_quizId);
     }
 
-    function getQuiz(uint256 _quizId) public onlyOperator view returns (QuizDetail memory) {
+    function getQuiz(uint256 _quizId) public  view returns (QuizDetail memory) {
         return quizzes[_quizId];
     }
 
@@ -298,7 +298,7 @@ contract DataStorage {
             }
         }
         if (hasQuizId) {
-            (shouldAwardQuizIds[index], shouldAwardQuizIds[shouldAwardQuizIds.length - 1] = shouldAwardQuizIds[shouldAwardQuizIds.length - 1, shouldAwardQuizIds[index]);
+            shouldAwardQuizIds[index] = shouldAwardQuizIds[shouldAwardQuizIds.length - 1];
             shouldAwardQuizIds.pop();
         }
     }

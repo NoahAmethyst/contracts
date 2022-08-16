@@ -157,7 +157,7 @@ interface IGameData {
         uint256 id;
         uint256 category;
         string appId;
-        int256 groupId;
+        int256[] groupIds;
         uint256 botType;
         string title;
         string introduction;
@@ -166,6 +166,8 @@ interface IGameData {
         // v/100
         uint256 eliminateProportion;
         uint256 awardProportion;
+        uint256 creatorProportion;
+        uint256 sponsorProportion;
         uint256 winnerNum;
         uint256[] buffIds;
         string buffDesc;
@@ -216,6 +218,7 @@ interface IGameData {
     //game result
     struct GameRound {
         uint256 gameId;
+        uint256 round;
         address[] winners;
         uint256 participate;
         address sponsor;
@@ -379,6 +382,7 @@ contract Game is Permission {
 
     function createGame(IGameData.GameDetail memory _game) public onlyAdmin(_game.appId) {
         require(_game.id != 0, "Invalid id");
+        require(_game.awardProportion.add(_game.creatorProportion).add(_game.sponsorProportion) <= 100, "proportion exceeded");
         IGameData.GameDetail memory game = gameData.getGame(_game.id);
         require(!game.exist, "Exist game");
         game = _game;
@@ -393,11 +397,14 @@ contract Game is Permission {
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
         (bool hasPlayer,) = _checkIsJoin(_gameId, _round, msg.sender);
         require(!hasPlayer, "Has tickets");
-        if (game.ticketIsEth) {
-            require(msg.value >= game.ticketAmount, "Insufficient");
-        } else {
-            game.ticketsToken.transferFrom(msg.sender, address(this), game.ticketAmount);
+        if (game.ticketAmount > 0) {
+            if (game.ticketIsEth) {
+                require(msg.value >= game.ticketAmount, "Insufficient");
+            } else {
+                game.ticketsToken.transferFrom(msg.sender, address(this), game.ticketAmount);
+            }
         }
+
         gameData.addPlayer(_gameId, _round, msg.sender);
         gameLogic.eliminatePlayer(_gameId, _round, int256(newPlayerIndex[_gameId][_round]));
         newPlayerIndex[_gameId][_round] += 1;
@@ -446,17 +453,22 @@ contract Game is Permission {
         _gameRound.eventsIndexes = _eventsIndexes;
         _gameRound.over = true;
         gameData.editGameRound(_gameId, _round, _gameRound);
-        _awardWinner(_gameId, _winners, _round);
+        _partitionTicketPool(_gameId, _gameRound.sponsor, _winners, _round);
     }
 
-    function _awardWinner(uint256 _gameId, address[] memory _winners, uint256 _round) internal {
+    function _partitionTicketPool(uint256 _gameId, address _sponsor, address[] memory _winners, uint256 _round) internal {
         if (_winners.length == 0) {
             return;
         }
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
+
         uint256 ticketPoolAmount = gameData.getTicketsPool(_gameId, _round);
+        if (ticketPoolAmount == 0) {
+            return;
+        }
         uint256 awardAmount = ticketPoolAmount.mul(game.awardProportion).div(100);
-        uint256 remainingAmount = ticketPoolAmount.sub(awardAmount);
+        uint256 toCreator = ticketPoolAmount.mul(game.creatorProportion).div(100);
+        uint256 toSponsor = ticketPoolAmount.mul(game.sponsorProportion).div(100);
         uint256 singleAward = awardAmount.div(_winners.length);
 
         for (uint i = 0; i < _winners.length; i++) {
@@ -467,14 +479,15 @@ contract Game is Permission {
 
             }
         }
-        _refundTicketPool(game, remainingAmount);
+        _refundTicketPool(game, game.creator, toCreator);
+        _refundTicketPool(game, _sponsor, toSponsor);
     }
 
-    function _refundTicketPool(IGameData.GameDetail memory _game, uint256 _remainingAmount) internal {
+    function _refundTicketPool(IGameData.GameDetail memory _game, address _to, uint256 _amount) internal {
         if (_game.ticketIsEth) {
-            payable(_game.creator).transfer(_remainingAmount);
+            payable(_to).transfer(_amount);
         } else {
-            _game.ticketsToken.transfer(_game.creator, _remainingAmount);
+            _game.ticketsToken.transfer(_to, _amount);
         }
     }
 
@@ -513,7 +526,6 @@ contract Game is Permission {
         }
         return hasBuff;
     }
-
 
 
 }

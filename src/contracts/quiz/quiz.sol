@@ -134,7 +134,7 @@ contract Quiz {
     uint256 public correctRewardAmount;
     uint256 public exciteAmount;
 
-    constructor(address payable _operator, ILottery _lottery, IIntegrateToken _quizToken, IIntegrateToken _excitationToken, IDataStorage _storage, uint256 _rewardAmount) {
+    constructor(address payable _operator, ILottery _lottery, IIntegrateToken _quizToken, IIntegrateToken _excitationToken, IDataStorage _storage, uint256 _rewardAmount, uint256 _exciteAmount) {
         owner = msg.sender;
         operator = _operator;
         lottery = _lottery;
@@ -142,6 +142,7 @@ contract Quiz {
         excitationToken = _excitationToken;
         dataStorage = _storage;
         correctRewardAmount = _rewardAmount;
+        exciteAmount = _exciteAmount;
     }
 
 
@@ -201,6 +202,10 @@ contract Quiz {
 
     function changeExciteAmount(uint256 _newAmount) public onlyOwner {
         exciteAmount = _newAmount;
+    }
+
+    function changeDataStorage(IDataStorage _data) public onlyOwner {
+        dataStorage = _data;
     }
 
     function createQuiz(string memory _appId, uint256 _quizId, int256 _groupId, uint _botType, string[] memory _questions,

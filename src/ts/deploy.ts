@@ -20,6 +20,7 @@ export const DEPLOYER_CONTRACT = "0x4e59b44847b379578588920ca78fbf26c0b4956c";
 export const CONTRACT_NAMES = {
     unlimittoken: "UnlimitedToken",
     data_storage: "DataStorage",
+    old_data_storage: "",
     lottery: "LotteryPool",
     quiz: "Quiz",
     game_data: "GameDataStorage",
