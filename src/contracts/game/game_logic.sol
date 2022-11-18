@@ -148,7 +148,7 @@ interface IGameData {
         uint256 id;
         uint256 category;
         string appId;
-        int256 groupId;
+        int256[] groupIds;
         uint256 botType;
         string title;
         string introduction;
@@ -157,6 +157,8 @@ interface IGameData {
         // v/100
         uint256 eliminateProportion;
         uint256 awardProportion;
+        uint256 creatorProportion;
+        uint256 sponsorProportion;
         uint256 winnerNum;
         uint256[] buffIds;
         string buffDesc;
@@ -175,6 +177,8 @@ interface IGameData {
         uint256 startM;
         bool exist;
         address creator;
+        uint256 blockNum;
+        uint256 blockTimestamp;
     }
 
 
@@ -207,6 +211,7 @@ interface IGameData {
     //game result
     struct GameRound {
         uint256 gameId;
+        uint256 round;
         address[] winners;
         uint256 participate;
         address sponsor;
@@ -348,7 +353,7 @@ contract GameLogic is Permission {
                 }
                 for (uint i = 0; i < eliminateNum; i++) {
                     uint256 eliminateIndex = _randomNumber(remainPlayers[_gameId][_round].length, eliminateNum);
-                    _calculateEliminate(_gameId, _round, eliminateIndex, game.events.length);
+                    _calculateEliminate(_gameId, _round, eliminateIndex, game.events.length, i);
                 }
             }
             _calculateWinner(_gameId, _round, players);
@@ -357,7 +362,7 @@ contract GameLogic is Permission {
         return (eliminatePlayerIndexes[_gameId][_round], buffUsersIndexes[_gameId][_round], eventsIndexes[_gameId][_round], winners[_gameId][_round]);
     }
 
-    function _calculateEliminate(uint256 _gameId, uint256 _round, uint256 _eliminateIndex, uint256 _eventLength) internal returns (bool)  {
+    function _calculateEliminate(uint256 _gameId, uint256 _round, uint256 _eliminateIndex, uint256 _eventLength, uint256 _salt) internal returns (bool)  {
         bool eliminate = false;
         uint256 playerIndex = uint256(remainPlayers[_gameId][_round][_eliminateIndex]);
         (bool hasIndex,) = _checkHasIndex(playerIndex, buffUsersIndexes[_gameId][_round]);
@@ -367,10 +372,9 @@ contract GameLogic is Permission {
             eventsIndexes[_gameId][_round].push(- 1);
         } else {
             eliminatePlayerIndexes[_gameId][_round].push(int256(playerIndex));
-            eventsIndexes[_gameId][_round].push(int256(_randomNumber(_eventLength, _eventLength)));
-
-            (remainPlayers[_gameId][_round][_eliminateIndex], remainPlayers[_gameId][_round][remainPlayers[_gameId][_round].length - 1]) =
-            (remainPlayers[_gameId][_round][remainPlayers[_gameId][_round].length - 1], remainPlayers[_gameId][_round][_eliminateIndex]);
+            eventsIndexes[_gameId][_round].push(int256(_randomNumber(_eventLength, _salt)));
+            uint256 lastIndex = remainPlayers[_gameId][_round].length - 1;
+            remainPlayers[_gameId][_round][_eliminateIndex] = remainPlayers[_gameId][_round][lastIndex];
             remainPlayers[_gameId][_round].pop();
             eliminate = true;
         }
@@ -411,8 +415,6 @@ contract GameLogic is Permission {
     function _randomNumber(uint256 _scope, uint256 _salt) internal view returns (uint256) {
         return uint256(keccak256(abi.encode(abi.encodePacked(block.timestamp, block.difficulty), _salt))) % _scope;
     }
-
-
 
 
 }

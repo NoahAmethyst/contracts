@@ -186,7 +186,7 @@ contract GameDataStorage is Permission {
         uint256 id;
         uint256 category;
         string appId;
-        int256 groupId;
+        int256[] groupIds;
         uint256 botType;
         string title;
         string introduction;
@@ -195,6 +195,8 @@ contract GameDataStorage is Permission {
         // v/100
         uint256 eliminateProportion;
         uint256 awardProportion;
+        uint256 creatorProportion;
+        uint256 sponsorProportion;
         uint256 winnerNum;
         uint256[] buffIds;
         string buffDesc;
@@ -213,6 +215,8 @@ contract GameDataStorage is Permission {
         uint256 startM;
         bool exist;
         address creator;
+        uint256 blockNum;
+        uint256 blockTimestamp;
     }
 
     mapping(uint256 => GameDetail) private games;
@@ -225,10 +229,13 @@ contract GameDataStorage is Permission {
 
     function setGame(string memory _appId, GameDetail memory _game) public onlyOperator {
         if (!games[_game.id].exist) {
-            games[_game.id] = _game;
             appGames[_appId].push(_game.id);
             gameIds.push(_game.id);
         }
+        _game.blockNum = block.number;
+        _game.blockTimestamp = block.timestamp;
+        games[_game.id] = _game;
+
     }
 
     function getGame(uint256 _id) public view returns (GameDetail memory) {
@@ -304,6 +311,7 @@ contract GameDataStorage is Permission {
     //game result
     struct GameRound {
         uint256 gameId;
+        uint256 round;
         address[] winners;
         uint256 participate;
         address sponsor;
@@ -322,6 +330,7 @@ contract GameDataStorage is Permission {
         if (games[_gameId].exist) {
             GameRound memory gameRound = GameRound(
                 _gameId,
+                gameRoundList[_gameId].length,
                 new address[](0),
                 0,
                 _sponsor,
@@ -342,6 +351,7 @@ contract GameDataStorage is Permission {
 
     function getGameRound(uint256 _gameId, uint256 _round) public view returns (GameRound memory){
         GameRound memory gameRound = GameRound(
+            0,
             0,
             new address[](0),
             0,
@@ -371,7 +381,6 @@ contract GameDataStorage is Permission {
         } else {
             return - 1;
         }
-
     }
 
     function getGameRoundList(uint256 _gameId) public view returns (GameRound[] memory){
