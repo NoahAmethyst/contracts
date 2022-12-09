@@ -218,19 +218,21 @@ contract ERC20 is Context, IERC20 {
         _decimals = decimals_;
     }
 
-
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual {}
 }
 
-contract UnlimitedToken is ERC20 {
+contract StandardToken is ERC20 {
 
     address public owner;
 
     mapping(address => bool) public  operators;
 
-    constructor(string memory _name, string memory _symbol)  ERC20(_name, _symbol) {
+    uint256 public limit;
+
+    constructor(string memory _name, string memory _symbol, uint256 _limit)  ERC20(_name, _symbol) {
         owner = msg.sender;
         operators[msg.sender] = true;
+        limit = _limit;
         _setupDecimals(18);
     }
 
@@ -240,7 +242,7 @@ contract UnlimitedToken is ERC20 {
     }
 
     modifier onlyOperator(){
-        require(operators[msg.sender], "not allowed");
+        require(operators[msg.sender], "Not allowed");
         _;
     }
 
@@ -249,6 +251,7 @@ contract UnlimitedToken is ERC20 {
     }
 
     function mint(address account, uint256 amount) public onlyOperator {
+        require(totalSupply() < limit, "Token has reach max count");
         _mint(account, amount);
     }
 

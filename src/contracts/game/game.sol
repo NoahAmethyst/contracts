@@ -186,6 +186,8 @@ interface IGameData {
         uint256 startM;
         bool exist;
         address creator;
+        uint256 blockNum;
+        uint256 blockTimestamp;
     }
 
 
@@ -333,6 +335,10 @@ contract Game is Permission {
         gameData = _newData;
     }
 
+    function changeGameLogic(IGameLogic _newLogic) public onlyOwner {
+        gameLogic = _newLogic;
+    }
+
     function changeBuffToken(IQuizToken _newToken) public onlyOwner {
         buffToken = _newToken;
     }
@@ -355,16 +361,15 @@ contract Game is Permission {
 
 
     function checkGame(uint256 _gameId) private view {
-        require(_gameId != 0, "Invalid id");
-        require(gameData.getGame(_gameId).exist, "Not exist game");
+        require(gameData.getGame(_gameId).exist, "No game configured");
     }
 
     function checkGameRound(uint256 _gameId, uint256 _round) private view {
-        require(gameData.getGameRound(_gameId, _round).exist, "Not start round");
+        require(gameData.getGameRound(_gameId, _round).exist, "Current game finished");
     }
 
     function gameRoundNotOver(uint256 _gameId, uint256 _round) private view {
-        require(!gameData.getGameRound(_gameId, _round).over, "Over round");
+        require(!gameData.getGameRound(_gameId, _round).over, "Game has started");
     }
 
     modifier onlyAdmin(string memory _appId) {
@@ -381,8 +386,7 @@ contract Game is Permission {
     }
 
     function createGame(IGameData.GameDetail memory _game) public onlyAdmin(_game.appId) {
-        require(_game.id != 0, "Invalid id");
-        require(_game.awardProportion.add(_game.creatorProportion).add(_game.sponsorProportion) <= 100, "proportion exceeded");
+        require(_game.awardProportion.add(_game.creatorProportion).add(_game.sponsorProportion) <= 100, "Proportion could not exceed 1");
         IGameData.GameDetail memory game = gameData.getGame(_game.id);
         require(!game.exist, "Exist game");
         game = _game;
@@ -396,10 +400,10 @@ contract Game is Permission {
         gameRoundNotOver(_gameId, _round);
         IGameData.GameDetail memory game = gameData.getGame(_gameId);
         (bool hasPlayer,) = _checkIsJoin(_gameId, _round, msg.sender);
-        require(!hasPlayer, "Has tickets");
+        require(!hasPlayer, "Already joined the game");
         if (game.ticketAmount > 0) {
             if (game.ticketIsEth) {
-                require(msg.value >= game.ticketAmount, "Insufficient");
+                require(msg.value >= game.ticketAmount, "Insufficient balance");
             } else {
                 game.ticketsToken.transferFrom(msg.sender, address(this), game.ticketAmount);
             }
@@ -414,10 +418,10 @@ contract Game is Permission {
     function buyBuff(uint256 _gameId, uint256 _round, uint256 _buffId) public {
         gameRoundNotOver(_gameId, _round);
         checkGameRound(_gameId, _round);
-        require(_checkBuffExist(_gameId, _buffId), "not buff");
+        require(_checkBuffExist(_gameId, _buffId), "No buff available");
         (bool hasPlayer, uint256 index) = _checkIsJoin(_gameId, _round, msg.sender);
-        require(hasPlayer, "Not in round");
-        require(!_checkHasBuff(_gameId, _round, index), "Has buff");
+        require(hasPlayer, "Game has started");
+        require(!_checkHasBuff(_gameId, _round, index), "Already had buff");
         buffToken.burn(msg.sender, buffValue);
         gameData.addBuffPlayers(_gameId, _round, index);
         gameLogic.triggerBuff(_gameId, _round, index);
@@ -426,6 +430,11 @@ contract Game is Permission {
     function startGame(string memory _appId, uint256 _gameId, uint256 _launchTime) public payable {
         checkGame(_gameId);
         require(msg.value > 0, "Prepay for gas");
+        int256 round = gameData.getGameLatestRoundNum(_gameId);
+        if (round >= 0) {
+            require(gameData.getGameRound(_gameId, uint256(round)).over, "Game still running");
+        }
+
         address payable thisOperator = appOperators[_appId];
         if (address(thisOperator) == address(0)) {
             thisOperator = operator;

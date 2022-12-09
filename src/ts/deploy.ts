@@ -27,6 +27,13 @@ export const CONTRACT_NAMES = {
     game: "Game",
     game_logic: "GameLogic",
     game_reader: "GameReader",
+    award_data: "AwardData",
+    award: "Award",
+    nft_token: "NFT",
+    CAT: "CAT",
+    CatMinter: "Minter",
+    BCAT: "BCAT",
+
 
 } as const;
 

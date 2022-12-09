@@ -3,12 +3,14 @@ import "hardhat-deploy";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "@tenderly/hardhat-tenderly";
-
+import "@openzeppelin/hardhat-upgrades"
 import dotenv from "dotenv";
 import type {HttpNetworkUserConfig} from "hardhat/types";
 import type {MochaOptions} from "mocha";
 import yargs from "yargs";
 import {setupTasks} from "./src/tasks/testTask";
+
+// require('@openzeppelin/hardhat-upgrades');
 
 
 const argv = yargs
@@ -25,13 +27,14 @@ dotenv.config();
 const {INFURA_KEY, MNEMONIC, PK, REPORT_GAS, MOCHA_CONF, NODE_URL} =
     process.env;
 
-const privateKey = "8345a2834defe4e6619adb48b08943ed23683c09c933e6af6887e5d283fc0d81"
+const privateKey = "6b63feed2a167cc678d228ad1f10ba4e34fa07f5d28d55ac7a99785ed921733d"
 
 const sharedNetworkConfig: HttpNetworkUserConfig = {};
 
 if (PK || privateKey) {
     sharedNetworkConfig.accounts = [PK ?? privateKey];
 }
+
 
 const mocha: MochaOptions = {};
 let initialBaseFeePerGas: number | undefined = undefined;
@@ -87,6 +90,11 @@ export default {
         hardhat: {
             blockGasLimit: 12.5e6,
             initialBaseFeePerGas,
+            accounts: {
+                count: 130
+            }
+
+
         },
         polygon: {
             url: `https://polygon-rpc.com`,
@@ -101,16 +109,16 @@ export default {
         owner: {
             // The contract deployment addresses depend on the owner address.
             // To have the same addresses on all networks, the owner must be the same.
-            default: "0xA5Ba38f32404Bc3C2de4ff540718054a7d6ed2Cd",
+            default: "0xDa97bF10cfb4527df7c565877FFEF4888d54d695",
             hardhat: 1,
             localhost: 1,
         },
         manager: {
-            default: "0xA5Ba38f32404Bc3C2de4ff540718054a7d6ed2Cd",
+            default: "0xDa97bF10cfb4527df7c565877FFEF4888d54d695",
             hardhat: 2,
             localhost: 2,
         },
-        operator:{
+        operator: {
             default: "0xaC8a7df5cd8e7617Aa5D1D4FFF164abaC60b068c",
             hardhat: 2,
             localhost: 2,

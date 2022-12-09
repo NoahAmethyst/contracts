@@ -215,6 +215,8 @@ contract GameDataStorage is Permission {
         uint256 startM;
         bool exist;
         address creator;
+        uint256 blockNum;
+        uint256 blockTimestamp;
     }
 
     mapping(uint256 => GameDetail) private games;
@@ -230,7 +232,10 @@ contract GameDataStorage is Permission {
             appGames[_appId].push(_game.id);
             gameIds.push(_game.id);
         }
+        _game.blockNum = block.number;
+        _game.blockTimestamp = block.timestamp;
         games[_game.id] = _game;
+
     }
 
     function getGame(uint256 _id) public view returns (GameDetail memory) {

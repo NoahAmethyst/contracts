@@ -118,6 +118,15 @@ interface IDataStorage {
 
 }
 
+interface ICAT {
+    function balanceOf(address _owner) external view returns (uint256);
+
+    function tokenOfOwnerByIndex(address _owner, uint256 _index) external view returns (uint256);
+
+    function level(uint256 _tokenId) external view returns (uint256);
+
+}
+
 
 contract Quiz {
 
@@ -130,6 +139,9 @@ contract Quiz {
     IIntegrateToken public excitationToken;
     IDataStorage public dataStorage;
 
+    mapping(string => IIntegrateToken) public quizTokens;
+    mapping(string => ICAT) public appCats;
+
 
     uint256 public correctRewardAmount;
     uint256 public exciteAmount;
@@ -138,8 +150,8 @@ contract Quiz {
         owner = msg.sender;
         operator = _operator;
         lottery = _lottery;
-        quizToken = _quizToken;
         excitationToken = _excitationToken;
+        quizToken = _quizToken;
         dataStorage = _storage;
         correctRewardAmount = _rewardAmount;
         exciteAmount = _exciteAmount;
@@ -206,6 +218,14 @@ contract Quiz {
 
     function changeDataStorage(IDataStorage _data) public onlyOwner {
         dataStorage = _data;
+    }
+
+    function setAppQzt(string memory _appId, IIntegrateToken _newToken) public onlyOwner {
+        quizTokens[_appId] = _newToken;
+    }
+
+    function setAppCat(string memory _appId, address _cat) public onlyOwner {
+        appCats[_appId] = ICAT(_cat);
     }
 
     function createQuiz(string memory _appId, uint256 _quizId, int256 _groupId, uint _botType, string[] memory _questions,
@@ -311,7 +331,31 @@ contract Quiz {
         uint256 i = 0;
 
         while (i < thisInductees.length) {
-            quizToken.mint(thisInductees[i], quiz.amount);
+            if (address(quizTokens[_appId]) != address(0)) {
+                uint256 _rewardAmount = correctRewardAmount;
+                if (address(appCats[_appId]) != address(0)) {
+                    if (appCats[_appId].balanceOf(thisInductees[i]) > 0) {
+                        uint256 level = appCats[_appId].level(appCats[_appId].tokenOfOwnerByIndex(thisInductees[i], 0));
+                        if (level == 2) {
+                            _rewardAmount = _rewardAmount.mul(150).div(100);
+                        } else if (level == 3) {
+                            _rewardAmount = _rewardAmount.add(_rewardAmount.mul(250).div(100));
+                        } else if (level == 4) {
+                            _rewardAmount = _rewardAmount.add(_rewardAmount.mul(500).div(100));
+                        } else if (level == 5) {
+                            _rewardAmount = _rewardAmount.add(_rewardAmount.mul(1000).div(100));
+                        }
+                    } else {
+                        _rewardAmount = 0;
+                    }
+                }
+                if (_rewardAmount > 0) {
+                    quizTokens[_appId].mint(thisInductees[i], correctRewardAmount);
+                }
+            } else {
+                quizToken.mint(thisInductees[i], quiz.amount);
+            }
+
             i += 1;
         }
 

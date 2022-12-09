@@ -7,12 +7,23 @@ import {getNamedSigner} from "../src/tasks/ts/signers";
 
 describe("initGame", () => {
     const [deployer, owner, nonSolver, ...solvers] = waffle.provider.getWallets();
+
+
+    // for (let i = 0; i < 100; i++) {
+    //     let newWallet=waffle.provider.createEmptyWallet()
+    //
+    //     solvers.push(newWallet)
+    //
+    // }
+
     let tokenContract: Contract;
 
     console.log("current deployer is ", deployer.address)
     console.log("current owner is ", owner.address)
     let gameContract: Contract, gameLogicContract: Contract, gameReaderContract: Contract;
     let gameDataContract: GameDataStorage, dataStorageContract;
+
+    console.log("solvers:%d", solvers.length)
 
     beforeEach(async () => {
         const tokenSolidity = await ethers.getContractFactory(
@@ -90,11 +101,11 @@ describe("initGame", () => {
             let _game = [
                 1, BigNumber.from(1), "test", [BigNumber.from(1)],
                 BigNumber.from(1), "test", "test", "test",
-                BigNumber.from(50), BigNumber.from(50),BigNumber.from(20),BigNumber.from(30),
+                BigNumber.from(50), BigNumber.from(50), BigNumber.from(20), BigNumber.from(30),
                 BigNumber.from(1), [BigNumber.from(1), BigNumber.from(1), BigNumber.from(1)],
                 "test", ["test", "test"], false, "0x8464135c8F25Da09e49BC8782676a84730C318bC", ethers.utils.parseEther("0"),
                 BigNumber.from(1), BigNumber.from(1660889699), false, BigNumber.from(1),
-                BigNumber.from(1), true, owner.address
+                BigNumber.from(1), true, owner.address, 0, 0
             ];
             const result1 = await gameContract.connect(owner).createGame(_game);
             const txn1 = await result1.wait()
@@ -112,7 +123,7 @@ describe("initGame", () => {
 
 
             console.log("mint token")
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < solvers.length; i++) {
                 await tokenContract.connect(owner).mint(solvers[i].address, ethers.utils.parseEther("2"))
                 await tokenContract.connect(solvers[i]).approve(gameContract.address, ethers.utils.parseEther("1"));
             }
@@ -122,7 +133,7 @@ describe("initGame", () => {
 
             let round3 = await gameDataContract.getGameLatestRoundNum(gameId);
 
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < solvers.length; i++) {
                 const result3 = await gameContract.connect(solvers[i]).buyTicket(gameId, round3,
                     // {value: ethers.utils.parseEther("1")}
                 );
@@ -130,17 +141,17 @@ describe("initGame", () => {
                 expect(txn3.blockNumber).to.be.greaterThan(0)
             }
 
-            console.log("buy buff")
+            // console.log("buy buff")
+            //
+            // for (let i = 0; i < 5; i++) {
+            //     const result3 = await gameContract.connect(solvers[i]).buyBuff(gameId, round3, BigNumber.from(1));
+            //     const txn3 = await result3.wait()
+            //     expect(txn3.blockNumber).to.be.greaterThan(0)
+            // }
 
-            for (let i = 0; i < 5; i++) {
-                const result3 = await gameContract.connect(solvers[i]).buyBuff(gameId, round3, BigNumber.from(1));
-                const txn3 = await result3.wait()
-                expect(txn3.blockNumber).to.be.greaterThan(0)
-            }
 
-
-            // let rounds = await gameReaderContract.getNotOverRound(1, 5);
-            // console.log("not over rounds ", rounds)
+            let rounds = await gameReaderContract.getNotOverRound(1, 5);
+            console.log("not over rounds ", rounds)
 
             console.log("game over")
             let round4 = await gameDataContract.getGameLatestRoundNum(gameId);
@@ -156,7 +167,6 @@ describe("initGame", () => {
 
             const ids = await gameReaderContract.getGroupGameIds(1)
             console.log("ids", ids)
-
 
         })
 

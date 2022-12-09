@@ -313,6 +313,16 @@
               "internalType": "address",
               "name": "creator",
               "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blockNum",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blockTimestamp",
+              "type": "uint256"
             }
           ],
           "internalType": "struct IGameData.GameDetail",
@@ -682,6 +692,16 @@
               "internalType": "address",
               "name": "creator",
               "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blockNum",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blockTimestamp",
+              "type": "uint256"
             }
           ],
           "internalType": "struct IGameData.GameDetail[]",
@@ -924,6 +944,16 @@
               "internalType": "address",
               "name": "creator",
               "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blockNum",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blockTimestamp",
+              "type": "uint256"
             }
           ],
           "internalType": "struct IGameData.GameDetail",

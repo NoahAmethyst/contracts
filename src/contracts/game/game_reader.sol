@@ -113,6 +113,8 @@ interface IGameData {
         uint256 startM;
         bool exist;
         address creator;
+        uint256 blockNum;
+        uint256 blockTimestamp;
     }
 
 
