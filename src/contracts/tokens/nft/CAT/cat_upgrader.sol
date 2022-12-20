@@ -165,7 +165,14 @@ contract Permission {
         _;
     }
 
+    function _initPermission() internal {
+        owner = msg.sender;
+        addOperator(msg.sender);
+    }
+
     function transferOwner(address _newOwner) public onlyOwner {
+        removeOperator(owner);
+        addOperator(_newOwner);
         owner = _newOwner;
     }
 
@@ -184,23 +191,23 @@ contract Upgrader is Permission {
 
     ICAT public icat;
 
+    struct Token {
+        IERC20 erc20Address;
+        uint256 amount;
+    }
 
-    IERC20 public primaryMaterial;
-    IERC20 public secondaryMaterial;
-
-    mapping(uint256 => uint256[]) public upgradeCost;
+    mapping(uint256 => Token[]) public upgradeCosts;
 
 
     constructor(address _cat, address _primaryToken, address _secondaryToken) {
         icat = ICAT(_cat);
-        owner = msg.sender;
-        operators[address(msg.sender)] = true;
-        primaryMaterial = IERC20(_primaryToken);
-        secondaryMaterial = IERC20(_secondaryToken);
-        upgradeCost[2] = [500000000000000000000];
-        upgradeCost[3] = [5000000000000000000000];
-        upgradeCost[4] = [15000000000000000000000, 500000000000000000000];
-        upgradeCost[5] = [50000000000000000000000, 2000000000000000000000];
+        _initPermission();
+        upgradeCosts[2].push(Token(IERC20(_primaryToken), 500000000000000000000));
+        upgradeCosts[3].push(Token(IERC20(_primaryToken), 5000000000000000000000));
+        upgradeCosts[4].push(Token(IERC20(_primaryToken), 15000000000000000000000));
+        upgradeCosts[4].push(Token(IERC20(_secondaryToken), 500000000000000000000));
+        upgradeCosts[5].push(Token(IERC20(_primaryToken), 50000000000000000000000));
+        upgradeCosts[5].push(Token(IERC20(_secondaryToken), 2000000000000000000000));
     }
 
 
@@ -208,47 +215,49 @@ contract Upgrader is Permission {
         icat = ICAT(_cat);
     }
 
-    function cost(uint256 _level) public view returns (uint256[] memory){
-        return upgradeCost[_level];
+    function getUpgradeCost(uint256 _level) public view returns (Token[] memory){
+        return upgradeCosts[_level];
     }
 
-    function changePrimaryMaterial(address _token) public onlyOwner {
-        primaryMaterial = IERC20(_token);
+    function setUpgradeCost(uint256 _level, Token[] memory _prices) public onlyOwner {
+        delete upgradeCosts[_level];
+        _pushCosts(upgradeCosts[_level], _prices);
     }
 
-    function changeSecondaryMaterial(address _token) public onlyOwner {
-        secondaryMaterial = IERC20(_token);
-    }
-
-    function changeUpgradeCost(uint256 _level, uint256[] memory _cost) public onlyOwner {
-        upgradeCost[_level] = _cost;
+    function _pushCosts(Token[] storage _self, Token[] memory _costs) internal {
+        for (uint i = 0; i < _costs.length; i++) {
+            _self.push(Token(_costs[i].erc20Address, _costs[i].amount));
+        }
     }
 
     function upgrade(uint256 _tokenId) public {
         uint256 currentLevel = icat.level(_tokenId);
-        uint256[] memory costs = cost(currentLevel.add(1));
-        if (costs.length == 1) {
-            primaryMaterial.transferFrom(msg.sender, address(this), costs[0]);
-        }
-
-        if (costs.length == 2) {
-            primaryMaterial.transferFrom(msg.sender, address(this), costs[0]);
-            secondaryMaterial.transferFrom(msg.sender, address(this), costs[1]);
-        }
-
+        receiveToken(currentLevel + 1);
         icat.upgrade(_tokenId);
     }
 
-
-    function transferErc20(address payable _to) public onlyOwner {
-        uint256 primaryBalance = primaryMaterial.balanceOf(address(this));
-        if (primaryBalance > 0) {
-            primaryMaterial.transfer(_to, primaryBalance);
+    function receiveToken(uint256 _level) public payable {
+        Token[] memory costs = upgradeCosts[_level];
+        for (uint i = 0; i < costs.length; i++) {
+            if (address(costs[i].erc20Address) == address(0)) {
+                if (costs[i].amount > 0) {
+                    require(msg.value >= costs[i].amount, "Insufficient");
+                }
+                payable(msg.sender).transfer(msg.value - costs[i].amount);
+            } else {
+                costs[i].erc20Address.transferFrom(msg.sender, address(this), costs[i].amount);
+            }
         }
+    }
 
-        uint256 secondaryBalance = secondaryMaterial.balanceOf(address(this));
-        if (secondaryBalance > 0) {
-            secondaryMaterial.transfer(_to, secondaryBalance);
+
+    function withdraw(address _to, address _token, uint256 _amount) public {
+        if (address(_token) == address(0)) {
+            require(address(this).balance >= _amount, "Insufficient balance");
+            payable(_to).transfer(_amount);
+        } else {
+            require(IERC20(_token).balanceOf(address(this)) >= _amount, "Insufficient balance");
+            IERC20(_token).transfer(_to, _amount);
         }
     }
 

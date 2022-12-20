@@ -91,6 +91,7 @@
     "src/"
   ],
   "dependencies": {
-    "snowflake-id": "^1.1.0"
+    "snowflake-id": "^1.1.0",
+    "web3": "^1.8.1"
   }
 }

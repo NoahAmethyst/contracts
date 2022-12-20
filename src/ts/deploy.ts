@@ -32,7 +32,8 @@ export const CONTRACT_NAMES = {
     nft_token: "NFT",
     CAT: "CAT",
     CatMinter: "Minter",
-    BCAT: "BCAT",
+    BCAT: "BCATV4",
+    BCAT_PROXY:"BcatProxy",
 
 
 } as const;

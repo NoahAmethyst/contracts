@@ -18,6 +18,101 @@ library Asset {
     }
 }
 
+/**
+ * @dev Wrappers over Solidity's arithmetic operations with added overflow
+ * checks.
+ *
+ * Arithmetic operations in Solidity wrap on overflow. This can easily result
+ * in bugs, because programmers usually assume that an overflow raises an
+ * error, which is the standard behavior in high level programming languages.
+ * `SafeMath` restores this intuition by reverting the transaction when an
+ * operation overflows.
+ *
+ * Using this library instead of the unchecked operations eliminates an entire
+ * class of bugs, so it's recommended to use it always.
+ */
+library SafeMath {
+    /**
+     * @dev Returns the addition of two unsigned integers, reverting on
+     * overflow.
+     *
+     * Counterpart to Solidity's `+` operator.
+     *
+     * Requirements:
+     *
+     * - Addition cannot overflow.
+     */
+    function add(uint256 a, uint256 b) internal pure returns (uint256) {
+        uint256 c = a + b;
+        require(c >= a, "SafeMath: addition overflow");
+        return c;
+    }
+
+    /**
+     * @dev Returns the subtraction of two unsigned integers, reverting on
+     * overflow (when the result is negative).
+     *
+     * Counterpart to Solidity's `-` operator.
+     *
+     * Requirements:
+     *
+     * - Subtraction cannot overflow.
+     */
+    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+        require(b <= a, "SafeMath: subtraction overflow");
+        return a - b;
+    }
+
+    /**
+     * @dev Returns the multiplication of two unsigned integers, reverting on
+     * overflow.
+     *
+     * Counterpart to Solidity's `*` operator.
+     *
+     * Requirements:
+     *
+     * - Multiplication cannot overflow.
+     */
+    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+        if (a == 0) return 0;
+        uint256 c = a * b;
+        require(c / a == b, "SafeMath: mul overflow");
+        return c;
+    }
+
+    /**
+     * @dev Returns the integer division of two unsigned integers, reverting on
+     * division by zero. The result is rounded towards zero.
+     *
+     * Counterpart to Solidity's `/` operator. Note: this function uses a
+     * `revert` opcode (which leaves remaining gas untouched) while Solidity
+     * uses an invalid opcode to revert (consuming all remaining gas).
+     *
+     * Requirements:
+     *
+     * - The divisor cannot be zero.
+     */
+    function div(uint256 a, uint256 b) internal pure returns (uint256) {
+        require(b > 0, "SafeMath: division by 0");
+        return a / b;
+    }
+
+    /**
+     * @dev Returns the ceiling integer division of two unsigned integers,
+     * reverting on division by zero. The result is rounded towards up the
+     * nearest integer, instead of truncating the fractional part.
+     *
+     * Requirements:
+     *
+     * - The divisor cannot be zero.
+     * - The sum of the dividend and divisor cannot overflow.
+     */
+    function ceilDiv(uint256 a, uint256 b) internal pure returns (uint256) {
+        require(b > 0, "SafeMath: ceiling division by 0");
+        return a / b + (a % b == 0 ? 0 : 1);
+    }
+}
+
 
 interface ITokenuri {
     function tokenURI(uint256 _tokenId, string memory _app, uint256 _level) external view returns (string memory);
@@ -98,7 +193,9 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-contract Cashier {
+contract BcatProxy {
+
+    using SafeMath for uint256;
 
     //erc721 slots
     // Token name
@@ -165,36 +262,45 @@ contract Cashier {
 
     IERC20[] public receiveTokens;
 
+    address public partner;
+
     constructor() {}
 
 
+    function setConfig(bool _canTransfer, uint256 _maxSupply, uint256 _maxLevel, uint256 _freeMintCount) public {
+        canTransfer = _canTransfer;
+        maxSupply = _maxSupply;
+        require(_maxLevel <= maxLevel, "MaxLevel can only degenerate");
+        maxLevel = _maxLevel;
+        freeMintCount = _freeMintCount;
+    }
 
+    function mintProxy(address _to) public {
+        require(!minted[_to], "One chance");
+        tokenId += 1;
+        level[tokenId] = 1;
+        levelCount[1] += 1;
+        minted[_to] = true;
+    }
 
-    //    function receiveToken(address _token, uint256 _amount) public payable {
-    //        address partner = address(0xDa97bF10cfb4527df7c565877FFEF4888d54d695);
-    //        if (_token == address(0)) {
-    //            if (_amount > 0) {
-    //                require(msg.value >= _amount, "Insufficient");
-    //            }
-    //            if (msg.value > _amount) {
-    //                payable(msg.sender).transfer(msg.value - _amount);
-    //            }
-    //            if (partner != address(0)) {
-    //                payable(partner).transfer(_amount / 2);
-    //            }
-    //        } else {
-    //            if (partner != address(0)) {
-    //                IERC20(_token).transferFrom(msg.sender, address(this), _amount / 2);
-    //                IERC20(_token).transferFrom(msg.sender, partner, _amount / 2);
-    //            } else {
-    //                IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-    //            }
-    //        }
-    //    }
+    function mintProxyWithPayable(address _to) public payable {
+        mintProxy(_to);
+    }
 
+    function whiteListMint(bytes memory _signature, address _to) public {
+        require(false, "Not open");
+        //        mintProxy(_to);
+    }
+
+    function upgradeProxy(address _caller, uint256 _tokenId) public payable {
+        uint256 currLv = level[_tokenId];
+        require(currLv < maxLevel, "Max level");
+        levelCount[currLv] -= 1;
+        level[_tokenId] += 1;
+        levelCount[currLv + 1] += 1;
+    }
 
     function receiveToken(uint256 _level) public payable {
-        address partner = address(0);
         Token[] memory costs = upgradeCosts[_level];
         for (uint i = 0; i < costs.length; i++) {
             if (address(costs[i].erc20Address) == address(0)) {
@@ -205,12 +311,12 @@ contract Cashier {
                     payable(msg.sender).transfer(msg.value - costs[i].amount);
                 }
                 if (partner != address(0)) {
-                    payable(partner).transfer(costs[i].amount / 2);
+                    payable(partner).transfer(costs[i].amount.mul(20).div(100));
                 }
             } else {
                 if (partner != address(0)) {
-                    costs[i].erc20Address.transferFrom(msg.sender, address(this), costs[i].amount / 2);
-                    costs[i].erc20Address.transferFrom(msg.sender, partner, costs[i].amount / 2);
+                    costs[i].erc20Address.transferFrom(msg.sender, address(this), costs[i].amount.mul(80).div(100));
+                    costs[i].erc20Address.transferFrom(msg.sender, partner, costs[i].amount.mul(20).div(100));
                 } else {
                     costs[i].erc20Address.transferFrom(msg.sender, address(this), costs[i].amount);
                 }

