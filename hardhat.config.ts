@@ -3,14 +3,12 @@ import "hardhat-deploy";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "@tenderly/hardhat-tenderly";
-import "@openzeppelin/hardhat-upgrades"
+// import "@openzeppelin/hardhat-upgrades"
 import dotenv from "dotenv";
 import type {HttpNetworkUserConfig} from "hardhat/types";
 import type {MochaOptions} from "mocha";
 import yargs from "yargs";
 import {setupTasks} from "./src/tasks/testTask";
-
-// require('@openzeppelin/hardhat-upgrades');
 
 
 const argv = yargs
@@ -27,7 +25,7 @@ dotenv.config();
 const {INFURA_KEY, MNEMONIC, PK, REPORT_GAS, MOCHA_CONF, NODE_URL} =
     process.env;
 
-const privateKey = "6b63feed2a167cc678d228ad1f10ba4e34fa07f5d28d55ac7a99785ed921733d"
+const privateKey = PK
 
 const sharedNetworkConfig: HttpNetworkUserConfig = {};
 
@@ -75,8 +73,8 @@ export default {
                 version: "0.8.9",
                 settings: {
                     optimizer: {
-                        enabled: false,
-                        runs: 1000000,
+                        enabled: true,
+                        runs: 100000,
                     },
                 },
             },

@@ -1,6 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+
+library Asset {
+    function addAsset(IERC20[] storage _self, IERC20 _token) internal {
+        if (address(_token) != address(0)) {
+            bool hasToken = false;
+            for (uint j = 0; j < _self.length; j++) {
+                if (address(_self[j]) == address(_token)) {
+                    hasToken = true;
+                    break;
+                }
+            }
+            if (!hasToken) {
+                _self.push(_token);
+            }
+        }
+    }
+}
+
 /**
  * @dev String operations.
  */
@@ -1509,7 +1527,7 @@ contract Permission {
 }
 
 
-contract CATV2 is ERC721, ERC721Enumerable, Permission {
+contract CATProxyV2 is ERC721, ERC721Enumerable, Permission {
     using SafeMath for uint256;
 
     ITokenuri public tokenUri;
@@ -1545,23 +1563,8 @@ contract CATV2 is ERC721, ERC721Enumerable, Permission {
     event Upgrade(address indexed _from, uint256 indexed _tokenId, uint256 indexed _level);
 
 
-    constructor(string memory _name, string memory _symbol, address _tokenUri, string memory _app,
-        address _proxy, address _primaryToken, address _secondaryToken, address _operator)
-    ERC721(_name, _symbol)
-    payable{
-        tokenUri = ITokenuri(_tokenUri);
-        PROXY = _proxy;
-        app = _app;
-        _initPermission();
-        addOperator(_operator);
-        upgradeCosts[1].push(Token(IERC20(address(0)), basePrice));
-        upgradeCosts[2].push(Token(IERC20(_primaryToken), 500000000000000000000));
-        upgradeCosts[3].push(Token(IERC20(_primaryToken), 5000000000000000000000));
-        upgradeCosts[4].push(Token(IERC20(_primaryToken), 15000000000000000000000));
-        upgradeCosts[4].push(Token(IERC20(_secondaryToken), 500000000000000000000));
-        upgradeCosts[5].push(Token(IERC20(_primaryToken), 50000000000000000000000));
-        upgradeCosts[5].push(Token(IERC20(_secondaryToken), 2000000000000000000000));
-    }
+    constructor()
+    ERC721("T", "T"){}
 
     // The following functions are overrides required by Solidity.
 
@@ -1586,77 +1589,144 @@ contract CATV2 is ERC721, ERC721Enumerable, Permission {
         return super.supportsInterface(interfaceId);
     }
 
-    function changeKeyConfig(address _tokenuri, address _proxy) public onlyOwner {
-        if (_tokenuri != address(0)) {
-            tokenUri = ITokenuri(_tokenuri);
-        }
-        if (_proxy != address(0)) {
-            PROXY = _proxy;
-        }
-    }
-
     function setConfig(bool _canTransfer, uint256 _maxLevel, uint256 _freeMintCount, uint256 _publicThreshold) public onlyOwner {
-        Address.functionDelegateCall(PROXY,
-            abi.encodeWithSignature("setConfig(bool,uint256,uint256,uint256)", _canTransfer, _maxLevel, _freeMintCount, _publicThreshold)
-        );
-    }
-
-    function setUpgradeCost(uint256 _level, Token[] memory _prices) public onlyOwner {
-        delete upgradeCosts[_level];
-        _pushCosts(upgradeCosts[_level], _prices);
-    }
-
-    function getUpgradeCost(uint256 _level) public view returns (Token[] memory){
-        return upgradeCosts[_level];
+        canTransfer = _canTransfer;
+        maxLevel = _maxLevel;
+        freeMintCount = _freeMintCount;
+        publicThreshold = _publicThreshold;
     }
 
     function batchFreeMint(address[] memory _receivers) public onlyOperator {
-        Address.functionDelegateCall(PROXY,
-            abi.encodeWithSignature("batchFreeMint(address[])", _receivers)
-        );
-    }
-
-    function whiteListMint(bytes memory _signature) public {
-        Address.functionDelegateCall(PROXY,
-            abi.encodeWithSignature("whiteListMint(bytes)", _signature)
-        );
-    }
-
-    function publicMint() public payable {
-        Address.functionDelegateCall(PROXY,
-            abi.encodeWithSignature("publicMint()")
-        );
-    }
-
-    function upgrade(uint256 _tokenId) public payable {
-        Address.functionDelegateCall(PROXY,
-            abi.encodeWithSignature("upgrade(uint256)", _tokenId)
-        );
-    }
-
-    function callProxy(bytes memory _data) public payable {
-        Address.functionDelegateCall(PROXY, _data);
-    }
-
-    function _pushCosts(Token[] storage _self, Token[] memory _costs) internal {
-        for (uint i = 0; i < _costs.length; i++) {
-            _self.push(Token(_costs[i].erc20Address, _costs[i].amount));
+        for (uint i = 0; i < _receivers.length; i++) {
+            require(freeMintProcessCount < freeMintCount, "Free mint count exceeded");
+            freeMintProcessCount += 1;
+            safeMint(_receivers[i], 1);
         }
     }
 
-    // The following functions are overrides required by Solidity.
-    function _burn(uint256 _tokenId) internal override(ERC721) {
-        levelCount[level[_tokenId]] -= 1;
-        level[_tokenId] = 0;
-        super._burn(_tokenId);
+    function whiteListMint(bytes memory _signature) public {
+        require(totalSupply() >= freeMintCount, "Not reach white list mint requirement");
+        require(totalSupply() < publicThreshold, "White list mint count exceeded");
+        require(checkSign(_signature), "Signature not right");
+        safeMint(msg.sender, 1);
     }
 
-    function tokenURI(uint256 _tokenId)
-    public
-    view
-    override
-    returns (string memory)
-    {
-        return tokenUri.tokenURI(_tokenId, app, level[_tokenId]);
+    function publicMint() public payable {
+        receiveToken(1);
+        safeMint(msg.sender, 1);
     }
+
+    function upgrade(uint256 _tokenId) public payable {
+        uint256 currLv = level[_tokenId];
+        receiveToken(currLv + 1);
+        safeUpgrade(_tokenId);
+    }
+
+    function safeUpgrade(uint256 _tokenId) internal {
+        uint256 currLv = level[_tokenId];
+        require(currLv < maxLevel, "Max level");
+        levelCount[currLv] -= 1;
+        level[_tokenId] += 1;
+        levelCount[currLv + 1] += 1;
+        emit Upgrade(msg.sender, _tokenId, level[_tokenId]);
+    }
+
+    function safeMint(address _to, uint256 _level) internal returns (uint256){
+        require(!minted[_to], "One chance");
+        if (publicMintPrice() > upgradeCosts[1][0].amount) {
+            upgradeCosts[1][0].amount = publicMintPrice();
+        }
+        tokenId += 1;
+        level[tokenId] = _level;
+        levelCount[_level] += 1;
+        minted[_to] = true;
+        _safeMint(_to, tokenId);
+        return tokenId;
+    }
+
+
+    function receiveToken(uint256 _level) public payable {
+        if (_level == 1) {
+            uint256 price = publicMintPrice();
+            require(msg.value >= price, "Insufficient");
+            if (msg.value > price) {
+                payable(msg.sender).transfer(msg.value - price);
+            }
+        } else {
+            Token[] memory costs = upgradeCosts[_level];
+            for (uint i = 0; i < costs.length; i++) {
+                //matic 0x0000000000000000000000000000000000001010
+                if (address(costs[i].erc20Address) == address(0) ||
+                    address(costs[i].erc20Address) == address(0x0000000000000000000000000000000000001010)) {
+                    if (costs[i].amount > 0) {
+                        require(msg.value >= costs[i].amount, "Insufficient");
+                    }
+                    if (msg.value > costs[i].amount) {
+                        payable(msg.sender).transfer(msg.value - costs[i].amount);
+                    }
+                } else {
+                    costs[i].erc20Address.transferFrom(msg.sender, address(this), costs[i].amount);
+                    Asset.addAsset(receiveTokens, costs[i].erc20Address);
+                }
+            }
+        }
+    }
+
+    function publicMintPrice() public view returns (uint256){
+        uint256 totalSupply = totalSupply();
+        if (totalSupply < publicThreshold) {
+            return basePrice;
+        }
+        return basePrice.mul(totalSupply.sub(publicThreshold).div(1000).add(1));
+    }
+
+    function checkSign(bytes memory _signature) public view returns (bool) {
+        bytes32 thisMessage = keccak256(abi.encodePacked(msg.sender, this));
+        return operators[recoverSigner(thisMessage, _signature)];
+    }
+
+
+    function splitSignature(bytes memory sig)
+    internal
+    pure
+    returns (uint8 v, bytes32 r, bytes32 s)
+    {
+        require(sig.length == 65);
+
+        assembly {
+        // first 32 bytes, after the length prefix.
+            r := mload(add(sig, 32))
+        // second 32 bytes.
+            s := mload(add(sig, 64))
+        // final byte (first byte of the next 32 bytes).
+            v := byte(0, mload(add(sig, 96)))
+        }
+
+        return (v, r, s);
+    }
+
+    function recoverSigner(bytes32 _message, bytes memory sig)
+    internal
+    pure
+    returns (address)
+    {
+        //bytes32 hash =keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
+        (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
+        if (v < 27) {
+            v += 27;
+        }
+        return ecrecover(_message, v, r, s);
+    }
+
+
+    function withdraw(address _to, address _token, uint256 _amount) public {
+        if (address(_token) == address(0)) {
+            require(address(this).balance >= _amount, "Insufficient balance");
+            payable(_to).transfer(_amount);
+        } else {
+            require(IERC20(_token).balanceOf(address(this)) >= _amount, "Insufficient balance");
+            IERC20(_token).transfer(_to, _amount);
+        }
+    }
+
 }

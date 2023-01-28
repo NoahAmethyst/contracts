@@ -118,6 +118,9 @@ describe("testBcatV5", () => {
             {value: ethers.utils.parseEther("1")}
         );
 
+        console.log("deploy gas ", result.deployTransaction.gasLimit.toString())
+
+
         await catContract.connect(owner).setPartner("0xDa97bF10cfb4527df7c565877FFEF4888d54d695")
 
         console.log("cat:%s  proxy:%s", catContract.address, cashierContract.address)
@@ -319,7 +322,7 @@ describe("testBcatV5", () => {
                 }]
             }, [receivers])
 
-            const result = await catContract.connect(solvers[0]).callProxy(callData);
+            const result = await catContract.connect(solvers[0]).callProxy(callData)
             const txn = await result.wait()
             expect(txn.blockNumber).to.be.greaterThan(0)
             for (let i = 0; i < txn.events.length; i++) {

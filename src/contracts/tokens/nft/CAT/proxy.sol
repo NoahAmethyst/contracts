@@ -277,7 +277,7 @@ contract CatProxy {
         publicThreshold = _publicThreshold;
     }
 
-    function mintProxy(address _to) public {
+    function mintProxy(address _to) internal {
         require(!minted[_to], "One chance");
         if (publicMintPrice() > upgradeCosts[1][0].amount) {
             upgradeCosts[1][0].amount = publicMintPrice();

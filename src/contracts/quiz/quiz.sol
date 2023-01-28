@@ -146,6 +146,13 @@ contract Quiz {
     uint256 public correctRewardAmount;
     uint256 public exciteAmount;
 
+    struct Timezone {
+        int256 timeOffset;
+        string timezone;
+    }
+
+    mapping(uint256 => Timezone) public quizTimezoneList;
+
     constructor(address payable _operator, ILottery _lottery, IIntegrateToken _quizToken, IIntegrateToken _excitationToken, IDataStorage _storage, uint256 _rewardAmount, uint256 _exciteAmount) {
         owner = msg.sender;
         operator = _operator;
@@ -155,6 +162,10 @@ contract Quiz {
         dataStorage = _storage;
         correctRewardAmount = _rewardAmount;
         exciteAmount = _exciteAmount;
+        if (block.chainid == 137) {
+            appCats["Tristan"] = ICAT(0x21BdABb0CAb83DF0ff7e0C7425e9145D15dd11e8);
+        }
+
     }
 
 
@@ -229,7 +240,7 @@ contract Quiz {
     }
 
     function createQuiz(string memory _appId, uint256 _quizId, int256 _groupId, uint _botType, string[] memory _questions,
-        uint256 _rewardAmount, uint256 _startTime, uint256 _activeTime, string memory _title, string memory _photo) payable public onlyAdmin(_appId) {
+        uint256 _rewardAmount, uint256 _startTime, uint256 _activeTime, string memory _title, string memory _photo, Timezone memory _timezone) payable public onlyAdmin(_appId) {
         require(_quizId != 0, "invalid quizId 0");
         IDataStorage.QuizDetail memory quiz = dataStorage.getQuiz(_quizId);
         require(!quiz.exist, "exist quiz");
@@ -260,15 +271,16 @@ contract Quiz {
         quiz.activeTime = _activeTime;
 
         dataStorage.setQuiz(_appId, quiz);
+        quizTimezoneList[_quizId] = _timezone;
 
         excitationToken.mint(msg.sender, exciteAmount);
-
 
         emit CreateQuiz(_appId, _quizId, _groupId, _botType, _questions, _rewardAmount, _startTime, _activeTime);
     }
 
 
-    function editQuiz(string memory _appId, uint256 _quizId, int256 _groupId, string[] memory _questions, uint256 _startTime, uint256 _activeTime, string memory _title, string memory _photo) public
+    function editQuiz(string memory _appId, uint256 _quizId, int256 _groupId, string[] memory _questions, uint256 _startTime, uint256 _activeTime, string memory _title, string memory _photo,
+        Timezone memory _timezone) public
     onlyAdmin(_appId)
     checkQuiz(_quizId) {
         IDataStorage.QuizDetail memory quiz = dataStorage.getQuiz(_quizId);
@@ -290,6 +302,7 @@ contract Quiz {
         if (bytes(_photo).length > 0) {
             quiz.photo = _photo;
         }
+        quizTimezoneList[_quizId] = _timezone;
 
         dataStorage.setQuiz(_appId, quiz);
     }

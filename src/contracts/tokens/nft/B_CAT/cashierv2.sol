@@ -270,7 +270,7 @@ contract BcatProxy {
     function setConfig(bool _canTransfer, uint256 _maxSupply, uint256 _maxLevel, uint256 _freeMintCount) public {
         canTransfer = _canTransfer;
         maxSupply = _maxSupply;
-        require(_maxLevel <= maxLevel, "MaxLevel can only degenerate");
+        require(_maxLevel >= maxLevel, "MaxLevel can only increase");
         maxLevel = _maxLevel;
         freeMintCount = _freeMintCount;
     }
@@ -303,7 +303,9 @@ contract BcatProxy {
     function receiveToken(uint256 _level) public payable {
         Token[] memory costs = upgradeCosts[_level];
         for (uint i = 0; i < costs.length; i++) {
-            if (address(costs[i].erc20Address) == address(0)) {
+            //matic 0x0000000000000000000000000000000000001010
+            if (address(costs[i].erc20Address) == address(0) ||
+                address(costs[i].erc20Address) == address(0x0000000000000000000000000000000000001010)) {
                 if (costs[i].amount > 0) {
                     require(msg.value >= costs[i].amount, "Insufficient");
                 }
