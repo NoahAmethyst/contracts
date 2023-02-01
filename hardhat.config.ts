@@ -99,6 +99,41 @@ export default {
             ...sharedNetworkConfig,
             chainId: 137,
         },
+        bsc:{
+            url:`https://bsc-dataseed1.binance.org`,
+            ...sharedNetworkConfig,
+            chainId:56,
+        },
+        metis:{
+            url:`https://andromeda.metis.io/?owner=1088`,
+            ...sharedNetworkConfig,
+            chainId:1088,
+        },
+        klaytn:{
+            url:`https://public-node-api.klaytnapi.com/v1/cypress`,
+            ...sharedNetworkConfig,
+            chainId:8217,
+        },
+        okc:{
+            url:`https://exchainrpc.okex.org`,
+            ...sharedNetworkConfig,
+            chainId:66,
+        },
+        evmos:{
+            url:`https://eth.bd.evmos.org:8545`,
+            ...sharedNetworkConfig,
+            chainId:9001,
+        },
+        cronos:{
+            url:`https://evm.cronos.org`,
+            ...sharedNetworkConfig,
+            chainId:25,
+        },
+        aurora:{
+            url:`https://mainnet.aurora.dev`,
+            ...sharedNetworkConfig,
+            chainId:1313161554,
+        },
     },
     namedAccounts: {
         // Note: accounts defined by a number refer to the the accounts as configured

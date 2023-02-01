@@ -1653,7 +1653,8 @@ contract BcatProxyV3 is ERC721, ERC721Enumerable, Permission {
     function setConfig(bool _canTransfer, uint256 _maxSupply, uint256 _maxLevel, uint256 _freeMintCount) public {
         canTransfer = _canTransfer;
         maxSupply = _maxSupply;
-        require(_maxLevel <= maxLevel, "MaxLevel can only degenerate");
+        require(_maxLevel<=5,"MaxLevel 5 limited");
+        require(_maxLevel >= maxLevel, "MaxLevel can only increase");
         maxLevel = _maxLevel;
         freeMintCount = _freeMintCount;
     }
